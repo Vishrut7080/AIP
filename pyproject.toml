@@ -1,0 +1,36 @@
+[project]
+name = "ai-in-practice"
+version = "0.1.0"
+description = "A simple example project"
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    # --- model access -----------------------------------------------------------
+    "litellm>=1.55.0",      # one client for Anthropic / OpenAI / Gemini / Groq / Ollama
+    "python-dotenv>=1.0.0",
+
+    # --- contracts and validation -----------------------------------------------
+    "pydantic>=2.9.0",
+
+    # --- retrieval ---------------------------------------------------------------
+    "chromadb>=0.5.20",             # embedded vector store, no server
+    "rank-bm25>=0.2.2",             # lexical baseline
+    "sentence-transformers>=3.3.0", # local embeddings + cross-encoder reranker
+    "numpy>=1.26.0",
+
+    # --- serving (Lab 7) ---------------------------------------------------------
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "streamlit>=1.40.0",
+    "sse-starlette>=2.1.0",
+    "pyyaml>=6.0",
+
+    # --- analysis ----------------------------------------------------------------
+    "pandas>=2.2.0",
+    "matplotlib>=3.9.0",
+
+    # --- dev ---------------------------------------------------------------------
+    "pytest>=8.3.0",
+    "ruff>=0.8.0",
+]
