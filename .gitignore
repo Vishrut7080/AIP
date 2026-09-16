@@ -1,0 +1,6 @@
+.venv/
+.aip_cache/
+.aip_taces/
+.pytest_cache/
+
+Test_by_self
