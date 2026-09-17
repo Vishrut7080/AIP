@@ -70,6 +70,15 @@ def classify_parse_failure(raw: str) -> str:
     return "not_json_at_all"
 
 
+# Check for fenced JSON blocks
+# ```
+# {
+# "category": "..."
+# }
+# ```
+# ->
+# {"category": "..."}
+
 def salvage(raw: str) -> dict | None:
     """Tolerantly recover the JSON object, the way Part B eventually will."""
     text = raw.strip()
@@ -116,14 +125,25 @@ def _dump(title: str, counter: Counter, examples: dict) -> None:
         print(f"    {k:<26} {v:>3}   e.g. {examples[k]}")
 
 
+# uv run v0_naive.py --n 60
 def main() -> None:
+    # Command line parsing
     ap = argparse.ArgumentParser()
-    ap.add_argument("--n", type=int, default=40)
+    ap.add_argument("--n", type=int, default=40, help="The number of input records to use") # n for number of inputs # -n: custom arguments
     args = ap.parse_args()
-
+   
+    # Load Rows from JSONL file
     root = Path(__file__).resolve().parents[2]
     rows = [json.loads(l) for l in
-            (root / "data/eval/extraction_dev.jsonl").open(encoding="utf-8")][: args.n]
+            (root / "data/eval/extraction_dev.jsonl").open(encoding="utf-8")][:args.n] # n for number of inputs; first n numbers
+
+    # Basically does something like this
+    # with open("/data/eval/extraction_dev.jsonl") as file:
+    #     content = file.read()
+    #     first_40 = content[:40]
+    #     rows = []
+    #     for line in first_40:
+    #         rows.append(json.loads(line))
 
     blocked: Counter[str] = Counter()      # why bare json.loads() refused
     hidden: Counter[str] = Counter()       # defects behind the parse failure
@@ -148,6 +168,9 @@ def main() -> None:
                 _tally(crashed, ex_crashed, f"exception:{type(exc).__name__}", r["id"])
                 continue
 
+            print(raw) # raw will be string.
+
+            # llm string -> json / dict
             try:
                 rec = json.loads(raw)                     # exactly what v0 does
                 parsed_strict += 1

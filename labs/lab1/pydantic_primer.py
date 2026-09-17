@@ -26,7 +26,7 @@ saying "no" precisely.
 from __future__ import annotations
 
 import sys
-from typing import Literal
+from typing import Literal, Any
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
@@ -69,7 +69,8 @@ class Ticket1(BaseModel):
     # TODO 1: give this model two fields:
     #   ticket_id : str
     #   urgency   : int
-    pass
+    ticket_id: str
+    urgency: int
 
 
 def _t1():
@@ -102,7 +103,8 @@ validation error you can see and repair, not a mystery three services later.
 class Ticket2(BaseModel):
     # TODO 2: urgency must be an int between 1 and 5 inclusive.
     #         evidence must be a str of at most 200 characters.
-    pass
+    urgency: int=Field(ge=1,le=5)
+    evidence: str=Field(max_length=200)
 
 
 def _t2():
@@ -139,7 +141,7 @@ CATEGORIES = Literal["billing", "claims", "policy_change",
 
 class Ticket3(BaseModel):
     # TODO 3: a `category` field constrained to CATEGORIES above.
-    pass
+    category: CATEGORIES
 
 
 def _t3():
@@ -171,7 +173,7 @@ identifier is the one error a human reviewer will never catch.
 class Ticket4(BaseModel):
     # TODO 4: policy_number, optional, defaulting to None, and when present it
     #         must match exactly: AUR- followed by exactly 7 digits.
-    pass
+    policy_number: str|None=Field(default=None,pattern=r'^AUR-\d{7}$') # ^ means from string starting $ means till ending must match
 
 
 def _t4():
@@ -205,7 +207,22 @@ class Ticket5(BaseModel):
     #         scale concretely. It must mention BOTH the word "urgency" and the
     #         digit "5" -- because "how urgent it is" tells the model nothing
     #         and it will invent its own scale.
-    pass
+    urgency: int=Field(ge=1,le=5, description="Urgency of this message, 1 to 5 (5 = most urgent). Judge by situation,\n"
+        "not tone — shouting isn't urgency.\n"
+        "1 = general knowledge/self-service, no account lookup needed "
+        "(e.g. 'waiting period for cataract surgery?').\n"
+        "2 = needs account lookup/action, or a transaction in flight "
+        "(e.g. 'add my newborn', 'app crashes on upload').\n"
+        "3 = something's already gone wrong and customer is waiting "
+        "(e.g. 'debited twice').\n"
+        "4 = repeated failure, money/access at risk now, or threatens escalation "
+        "(e.g. 'THIS IS THE THIRD TIME').\n"
+        "5 = active emergency, formal denial needing immediate reversal, or "
+        "states (not threatens) they're escalating to Ombudsman "
+        "(e.g. 'father in ICU, cashless DENIED').\n"
+        "1v2: needing to touch the account = at least 2. "
+        "4v5: 'will go to ombudsman' = 4; 'am filing' = 5. "
+        "+1 (cap 5) if a same-day/next-morning deadline is stated.")
 
 
 def _t5():
@@ -242,6 +259,14 @@ class Ticket6(BaseModel):
     # TODO 6: add a `mode="before"` validator on policy_number that converts
     #         "", "null", "none", "n/a" (any capitalisation, any surrounding
     #         whitespace) into None, and strips whitespace from anything else.
+    @field_validator('policy_number',mode='before') # decorator
+    @classmethod
+    def clean(cls,v:str|None)->str|None:
+        if v is None:
+            return None
+        if v.lower().strip() in ['','null','none','n/a']:
+            return None
+        return v.strip()
 
 
 def _t6():
@@ -277,7 +302,19 @@ def failing_fields(payload: dict) -> list[str]:
     Hint: catch ValidationError and read e.errors(); each entry has a 'loc'
     tuple whose first element is the field name.
     """
-    raise NotImplementedError
+    try:
+        Ticket7.model_validate(payload)
+        return []
+    except ValidationError as e:
+        # print('Validation Error', e.errors())
+        # ret: list[Any] = []
+        # for err in e.errors():
+        #     ret.extend(list(err['loc'])) 
+        # return sorted(ret)
+        return sorted(str(e['loc'][0]) for e in e.errors())
+    except Exception as e:
+        print('Hello World')
+
 
 
 def _t7():
@@ -299,6 +336,57 @@ eight fields. Note the two methods you will use constantly:
     obj.model_dump()                  object -> dict    (for scoring/JSON)
 """
 
+DESCRIPTIONS = {
+
+    # EVIDENCE
+    "evidence": "A direct quote or tight paraphrase (max 200 chars) from the ticket "
+        "text that most directly supports the category and urgency you "
+        "assigned. Must be grounded in the actual message — never invent or "
+        "infer text that isn't there.",
+
+    # CATEGORY
+    "category": "One of: billing, claims, policy_change, technical, complaint, "
+        "information.\n"
+        "billing = money in (premium, debits, refunds, invoices, 80D tax "
+        "certificate, instalments).\n"
+        "claims = an actual or intended claim (cashless, reimbursement, "
+        "settlement amount, deduction, rejection).\n"
+        "policy_change = altering the contract (add/remove a member, "
+        "upgrade, port, change contact details).\n"
+        "technical = app, portal, OTP, login, locator, or upload is broken.\n"
+        "complaint = the subject is Aurora's own conduct — mis-selling, "
+        "being kept on hold, an ignored grievance.\n"
+        "information = a question with no pending transaction behind it.\n"
+        "Key boundary: an angry message about a claim is still 'claims' if "
+        "the customer wants the claim processed. It's only 'complaint' when "
+        "Aurora's conduct itself is the subject, not the claim outcome.",
+
+    # URGENCY
+    "urgency": "Urgency of this message, 1 to 5 (5 = most urgent). Judge by "
+        "situation, not tone — shouting isn't urgency.\n"
+        "1 = general knowledge/self-service, no account lookup needed "
+        "(e.g. 'waiting period for cataract surgery?').\n"
+        "2 = needs account lookup/action, or a transaction in flight "
+        "(e.g. 'add my newborn', 'app crashes on upload').\n"
+        "3 = something's already gone wrong and customer is waiting "
+        "(e.g. 'debited twice').\n"
+        "4 = repeated failure, money/access at risk now, or threatens "
+        "escalation (e.g. 'THIS IS THE THIRD TIME').\n"
+        "5 = active emergency, formal denial needing immediate reversal, or "
+        "states (not threatens) they're escalating to Ombudsman "
+        "(e.g. 'father in ICU, cashless DENIED').\n"
+        "1v2: needing to touch the account = at least 2. "
+        "4v5: 'will go to ombudsman' = 4; 'am filing' = 5. "
+        "+1 (cap 5) if a same-day/next-morning deadline is stated.",
+
+    # POLICY NUMBER
+    "policy_number": "The policy number, format AUR- followed by exactly 7 digits, "
+        "copied verbatim from the message. Only take it from the live "
+        "message body — never from a quoted reply (lines starting with '>') "
+        "or a signature block, since those may carry a stale or different "
+        "number. If the only policy-shaped string in the ticket is inside a "
+        "quoted reply or signature, return null."
+}
 
 class TicketRecord(BaseModel):
     # TODO 8: combine what you have learned.
@@ -307,7 +395,20 @@ class TicketRecord(BaseModel):
     #   urgency       int 1-5, with a description
     #   policy_number str | None = None, pattern ^AUR-\d{7}$, with a description
     #                 and the same "before" validator from exercise 6
-    pass
+    evidence:str=Field(max_length=200, description=DESCRIPTIONS['evidence'])    
+    category:CATEGORIES=Field(description=DESCRIPTIONS['category'])
+    urgency:int=Field(ge=1,le=5,description=DESCRIPTIONS['urgency'])
+    policy_number:str|None=Field(default=None,pattern=r'^AUR-\d{7}$',description=DESCRIPTIONS['policy_number'])
+
+    @field_validator('policy_number',mode='before')
+    @classmethod
+    def clean(cls,v:str|None)->str|None:
+        if v is None:
+            return None
+        if v.lower().strip() in ['','null','none','n/a']:
+            return None
+        return v.strip()
+        
 
 
 def _t8():
