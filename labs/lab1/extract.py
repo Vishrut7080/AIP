@@ -46,24 +46,82 @@ class TicketRecord(BaseModel):
     "assigned. Must be grounded in the actual message — never invent or "
     "infer text that isn't there.",)
 
+    # description="TODO B1b: define each of the six categories in one clause "
+    #                     "each. Pay particular attention to the boundary between "
+    #                     "'complaint' and the category the complaint is about."
+    #     )
     category: CATEGORIES = Field(
-        description="TODO B1b: define each of the six categories in one clause "
-                    "each. Pay particular attention to the boundary between "
-                    "'complaint' and the category the complaint is about."
+        description="One of: billing, claims, policy_change, technical, complaint, "
+        "information.\n"
+        "billing = money in (premium, debits, refunds, invoices, 80D tax "
+        "certificate, instalments).\n"
+        "claims = an actual or intended claim (cashless, reimbursement, "
+        "settlement amount, deduction, rejection).\n"
+        "policy_change = altering the contract (add/remove a member, "
+        "upgrade, port, change contact details).\n"
+        "technical = app, portal, OTP, login, locator, or upload is broken.\n"
+        "complaint = the subject is Aurora's own conduct — mis-selling, "
+        "being kept on hold, an ignored grievance.\n"
+        "information = a question with no pending transaction behind it.\n"
+        "Key boundary: an angry message about a claim is still 'claims' if "
+        "the customer wants the claim processed. It's only 'complaint' when "
+        "Aurora's conduct itself is the subject, not the claim outcome.",
     )
 
+    # "TODO B1c: define the 1-5 scale concretely. Anchor at least "
+    #                 "points 1, 3 and 5 with a describable situation. If you do "
+    #                 "not define the scale, the model invents one, and it will "
+    #                 "not be the one the gold labels use."
+    
     urgency: int = Field(
         ge=1, le=5,
-        description="TODO B1c: define the 1-5 scale concretely. Anchor at least "
-                    "points 1, 3 and 5 with a describable situation. If you do "
-                    "not define the scale, the model invents one, and it will "
-                    "not be the one the gold labels use."
+        description="Urgency of this message, 1 to 5 (5 = most urgent). Judge by "
+        "situation, not tone — shouting isn't urgency.\n"
+        "1 = general knowledge/self-service, no account lookup needed "
+        "(e.g. 'waiting period for cataract surgery?').\n"
+        "2 = needs account lookup/action, or a transaction in flight "
+        "(e.g. 'add my newborn', 'app crashes on upload').\n"
+        "3 = something's already gone wrong and customer is waiting "
+        "(e.g. 'debited twice').\n"
+        "4 = repeated failure, money/access at risk now, or threatens "
+        "escalation (e.g. 'THIS IS THE THIRD TIME').\n"
+        "5 = active emergency, formal denial needing immediate reversal, or "
+        "states (not threatens) they're escalating to Ombudsman "
+        "(e.g. 'father in ICU, cashless DENIED').\n"
+        "1v2: needing to touch the account = at least 2. "
+        "4v5: 'will go to ombudsman' = 4; 'am filing' = 5. "
+        "+1 (cap 5) if a same-day/next-morning deadline is stated.",
     )
 
     # TODO B1d: sentiment  -> Literal["angry","frustrated","neutral","satisfied"]
+    sentiment:Literal["angry","frustrated","neutral","satisfied"]=Field(description="The customer's tone toward Aurora, one of:\n"
+        "angry = hostile, shouting, threatening.\n"
+        "frustrated = unhappy and tired of trying, but still civil.\n"
+        "neutral = matter-of-fact. Is the default for a first request, "
+        "however terse.\n"
+        "satisfied = thanks or praise.\n"
+        "Judge tone only — it is independent of urgency. A furious message "
+        "about a tax certificate is neutral/frustrated, not angry.\n"
+        "Key boundary: 'frustrated' requires a prior failure — a repeat "
+        "attempt, an unanswered request, or a delay. A first-time complaint "
+        "with no history is 'neutral', not 'frustrated'."
+)
     # TODO B1e: product    -> Literal["bronze","silver","gold","platinum","unknown"]
     #           Note "unknown" is a legal value. Say explicitly when to use it.
+    product:Literal["bronze","silver","gold","platinum","unknown"]=Field(description="The plan the customer names in the message, literally one of: "
+        "bronze, silver, gold, platinum.\n"
+        "Only set it if the plan is explicitly named in the message text. "
+        "Use \"unknown\" in every other case.\n"
+        "Never infer the plan from context — not from the sum insured, "
+        "not from a premium amount, not from coverage details."
+)
     # TODO B1f: language   -> Literal["en","hi-en"]
+    language:Literal["en","hi-en"]=Field(description="The dominant language of the message, one of:\n"
+        "en = English only.\n"
+        "hi-en = a mix of English and Hindi, including Hindi transliterated "
+        "into Latin script (e.g. kripya, jaldi, bahut, turant, paisa).\n"
+        "A single Hindi word is enough to qualify as hi-en."
+)
 
     # Part B only: the model decides these. In Part C you will delete them
     # from this schema and compute them in code instead.
