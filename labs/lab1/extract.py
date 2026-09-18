@@ -38,6 +38,14 @@ class TicketRecord(BaseModel):
     #           justifies, or after them? T2 §3.3. Decide, move it, and leave
     #           a one-line comment saying which effect you chose and why.
 
+    # TODO B1g: evidence   -> str, max_length=200, "the span of the ticket that
+        #           determined the category, quoted verbatim"
+
+    evidence:str=Field(max_length=200, description="A direct quote or tight paraphrase (max 200 chars) from the ticket "
+    "text that most directly supports the category and urgency you "
+    "assigned. Must be grounded in the actual message — never invent or "
+    "infer text that isn't there.",)
+
     category: CATEGORIES = Field(
         description="TODO B1b: define each of the six categories in one clause "
                     "each. Pay particular attention to the boundary between "
@@ -56,8 +64,6 @@ class TicketRecord(BaseModel):
     # TODO B1e: product    -> Literal["bronze","silver","gold","platinum","unknown"]
     #           Note "unknown" is a legal value. Say explicitly when to use it.
     # TODO B1f: language   -> Literal["en","hi-en"]
-    # TODO B1g: evidence   -> str, max_length=200, "the span of the ticket that
-    #           determined the category, quoted verbatim"
 
     # Part B only: the model decides these. In Part C you will delete them
     # from this schema and compute them in code instead.
