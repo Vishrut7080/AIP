@@ -232,7 +232,13 @@ def extract_b(ticket: str) -> TicketRecord:
     except BudgetExceeded:
         raise
     except Exception as e:
-        print(f"ERROR: {e}")
+        return{
+                    "category": "information", "urgency": 1, "sentiment": "neutral",
+                    "product": "unknown", "language": "en", "evidence": "",
+                    "policy_number": None, "contains_pii": False, "escalate": False,
+                    "needs_human_review": True,
+                    "review_reason": f"StructuredOutputError: {e}"
+                }
 
 # ===========================================================================
 # PART C — move the deterministic work out of the model
@@ -281,8 +287,8 @@ def extract_deterministic(ticket: str) -> dict[str, str| bool | None]:
     email_match = _PII_PATTERNS['EMAIL'].findall(ticket) 
     if len(email_match):
         excluded_emails = ['support@aurorahealth.example', 'grievance@aurorahealth.example']
-        contains_support = any(e not in excluded_emails for e in email_match)
-        if not contains_support:
+        contains_support = any(e in excluded_emails for e in email_match)
+        if not contains_support and len(email_match)>0:
             contains_pii=True
 
     if _PII_PATTERNS['PHONE_IN'].search(ticket):

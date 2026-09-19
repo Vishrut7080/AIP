@@ -20,7 +20,7 @@ from aip.evals import field_accuracy, judge_agreement, retrieval_metrics
 from aip.guards import (delimit_untrusted, detect_injection, enforce_citations,
                         redact_pii)
 from aip.llm import extract_json
-
+from labs.lab1.extract import apply_business_rules, extract_deterministic
 
 # --- chunking --------------------------------------------------------------
 def test_fixed_chunks_cover_the_text():
@@ -264,3 +264,19 @@ def test_unpriced_models_are_not_reported_as_free():
     assert b.unpriced_calls == 1
     assert "UNPRICED" in b.report()
     assert b.as_dict()["unpriced_calls"] == 1
+
+@pytest.mark.parametrize("ticket, policy, pii, urgency, escalate", [
+    # pii: customer email/phone count; Aurora's own email does not
+    ("AUR-1234567, mail to sneha@gmail.com",        "AUR-1234567", True,  4, True),
+    ("No policy here; from support@aurorahealth.example", None, False, 3, False),
+    ("Refund via 9876543210, going to the Ombudsman",     None, True,  2, True),
+    ("Update policy AUR-9999999",                          "AUR-9999999", False, 1, False),
+    # C3 trap: policy in the quoted reply below '>' is ignored
+    ("Please refund it.\n> Your policy AUR-1111111",       None, False, 3, False),
+])
+def test_lab1_deterministic_pipeline(ticket, policy, pii, urgency, escalate):
+    det = extract_deterministic(ticket)
+    rec = apply_business_rules({**det, "urgency": urgency}, ticket)
+    assert det["policy_number"] == policy
+    assert det["contains_pii"] is pii
+    assert rec["escalate"] is escalate 
