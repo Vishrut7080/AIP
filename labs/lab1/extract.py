@@ -244,7 +244,7 @@ POLICY_RE = re.compile(r"\bAUR-\d{7}\b")
 QUOTE_MARKER = re.compile(r"^\s*>", re.MULTILINE)
 
 
-def extract_deterministic(ticket: str) -> dict:
+def extract_deterministic(ticket: str) -> dict[str, str| bool | None]:
     """TODO C1: return {'policy_number', 'contains_pii'} without a model call.
 
     policy_number:
@@ -264,7 +264,31 @@ def extract_deterministic(ticket: str) -> dict:
         does not count for this dataset's labels -- check the gold data and
         say in your report whether you think that definition is right.
     """
-    raise NotImplementedError
+
+    q=QUOTE_MARKER.search(ticket)
+    if q is None:
+        relevant_part = ticket
+    else:
+        relevant_part = ticket[:q.start()]
+
+    # Use re.match() when you specifically want to validate that a string starts with a pattern.
+    # Use re.findall() when you want to extract every instance of a pattern anywhere in the text.
+    m = POLICY_RE.findall(relevant_part)
+    policy_number = m[0] if m else None     # Take the first match in case there are multiple policy numbers
+
+    contains_pii=False
+
+    email_match = _PII_PATTERNS['EMAIL'].findall(ticket) 
+    if len(email_match):
+        excluded_emails = ['support@aurorahealth.example', 'grievance@aurorahealth.example']
+        contains_support = any(e not in excluded_emails for e in email_match)
+        if not contains_support:
+            contains_pii=True
+
+    if _PII_PATTERNS['PHONE_IN'].search(ticket):
+        contains_pii=True
+
+    return { "policy_number": policy_number, "contains_pii": contains_pii }
 
 
 def apply_business_rules(rec_fields: dict, ticket: str) -> dict:
@@ -276,7 +300,8 @@ def apply_business_rules(rec_fields: dict, ticket: str) -> dict:
     compliance officer, changed without touching a prompt, and unit-tested.
     Write the unit test in tests/ while you are here.
     """
-    raise NotImplementedError
+    rec_fields['escalate'] = rec_fields['urgency'] >= 4 or 'ombudsman' in ticket.lower()
+    return rec_fields
 
 
 class TicketRecordC(BaseModel):
@@ -286,6 +311,79 @@ class TicketRecordC(BaseModel):
     fields means a shorter prompt, fewer output tokens, and three fields at
     100% accuracy. Measure all three effects.
     """
+    evidence:str=Field(max_length=200, description="A direct quote or tight paraphrase (max 200 chars) from the ticket "
+    "text that most directly supports the category and urgency you "
+        "assigned. Must be grounded in the actual message — never invent or "
+        "infer text that isn't there.",)
+    
+    category: CATEGORIES = Field(
+        description="One of: billing, claims, policy_change, technical, complaint, "
+            "information.\n"
+            "billing = money in (premium, debits, refunds, invoices, 80D tax "
+            "certificate, instalments).\n"
+            "claims = an actual or intended claim (cashless, reimbursement, "
+            "settlement amount, deduction, rejection).\n"
+            "policy_change = altering the contract (add/remove a member, "
+            "upgrade, port, change contact details).\n"
+            "technical = app, portal, OTP, login, locator, or upload is broken.\n"
+            "complaint = the subject is Aurora's own conduct — mis-selling, "
+            "being kept on hold, an ignored grievance.\n"
+            "information = a question with no pending transaction behind it.\n"
+            "Key boundary: an angry message about a claim is still 'claims' if "
+            "the customer wants the claim processed. It's only 'complaint' when "
+            "Aurora's conduct itself is the subject, not the claim outcome.",
+        )
+    
+        
+    urgency: int = Field(
+            ge=1, le=5,
+            description="Urgency of this message, 1 to 5 (5 = most urgent). Judge by "
+            "situation, not tone — shouting isn't urgency.\n"
+            "1 = general knowledge/self-service, no account lookup needed "
+            "(e.g. 'waiting period for cataract surgery?').\n"
+            "2 = needs account lookup/action, or a transaction in flight "
+            "(e.g. 'add my newborn', 'app crashes on upload').\n"
+            "3 = something's already gone wrong and customer is waiting "
+            "(e.g. 'debited twice').\n"
+            "4 = repeated failure, money/access at risk now, or threatens "
+            "escalation (e.g. 'THIS IS THE THIRD TIME').\n"
+            "5 = active emergency, formal denial needing immediate reversal, or "
+            "states (not threatens) they're escalating to Ombudsman "
+            "(e.g. 'father in ICU, cashless DENIED').\n"
+            "1v2: needing to touch the account = at least 2. "
+            "4v5: 'will go to ombudsman' = 4; 'am filing' = 5. "
+            "+1 (cap 5) if a same-day/next-morning deadline is stated.",
+        )
+        
+    sentiment:Literal["angry","frustrated","neutral","satisfied"]=Field(description="The customer's tone toward Aurora, one of:\n"
+            "angry = hostile, shouting, threatening.\n"
+            "frustrated = unhappy and tired of trying, but still civil.\n"
+            "neutral = matter-of-fact. Is the default for a first request, "
+            "however terse.\n"
+            "satisfied = thanks or praise.\n"
+            "Judge tone only — it is independent of urgency. A furious message "
+            "about a tax certificate is neutral/frustrated, not angry.\n"
+            "Key boundary: 'frustrated' requires a prior failure — a repeat "
+            "attempt, an unanswered request, or a delay. A first-time complaint "
+            "with no history is 'neutral', not 'frustrated'."
+    )
+    
+    product:Literal["bronze","silver","gold","platinum","unknown"]=Field(description="The plan the customer names in the message, literally one of: "
+            "bronze, silver, gold, platinum.\n"
+            "Only set it if the plan is explicitly named in the message text. "
+            "Use \"unknown\" in every other case.\n"
+            "Never infer the plan from context — not from the sum insured, "
+            "not from a premium amount, not from coverage details."
+    )
+    language:Literal["en","hi-en"]=Field(description="The dominant language of the message, one of:\n"
+            "en = English only.\n"
+            "hi-en = a mix of English and Hindi, including Hindi transliterated "
+            "into Latin script (e.g. kripya, jaldi, bahut, turant, paisa).\n"
+            "A single Hindi word is enough to qualify as hi-en."
+    )
+    
+    needs_human_review: bool = False
+    review_reason: str = ""
 
 
 def extract_c(ticket: str) -> dict:
@@ -294,7 +392,22 @@ def extract_c(ticket: str) -> dict:
     Returns a plain dict (model fields + deterministic fields + business rules)
     so that run_eval.py can score it against the gold labels directly.
     """
-    raise NotImplementedError
+    try:
+        response = structured(ticket, schema=TicketRecordC, system=SYSTEM_PROMPT)
+        res=response.model_dump()
+        res.update(extract_deterministic(ticket))
+        res=apply_business_rules(res,ticket)
+        return res
+    except StructuredOutputError as e:
+        return{
+            "category": "information", "urgency": 1, "sentiment": "neutral",
+            "product": "unknown", "language": "en", "evidence": "",
+            "policy_number": None, "contains_pii": False, "escalate": False,
+            "needs_human_review": True,
+            "review_reason": f"StructuredOutputError: {e}"
+        }
+    except BudgetExceeded:
+            raise
 
 
 if __name__ == "__main__":

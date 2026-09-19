@@ -22,7 +22,7 @@ from aip import tracing
 # --------------------------------------------------------------------------
 # Input hygiene
 # --------------------------------------------------------------------------
-_PII_PATTERNS: dict[str, re.Pattern] = {
+_PII_PATTERNS: dict[str, re.Pattern[str]] = {
     "EMAIL": re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b"),
     "PHONE_IN": re.compile(r"\b(?:\+?91[\s-]?)?[6-9]\d{9}\b"),
     "AADHAAR": re.compile(r"\b\d{4}\s?\d{4}\s?\d{4}\b"),
