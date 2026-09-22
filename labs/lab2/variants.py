@@ -45,18 +45,35 @@ FEW_SHOT_IDS: list[str] = [
     "T0222",  # teaches: the reverse sentiment trap -- a SATISFIED customer still needs routing (information, urgency 1); sentiment never sets urgency; extract product=platinum.
 ]
 
+# Zero Shot - Direct Prompt
+# Few Shot - Prompt + Examples (Edge Cases)
 
 def load_examples(ids: list[str]) -> list[dict]:
+    """Loads examples from the extraction_dev.jsonl file"""
+
+    # [json.loads(line) for line in file]
+    # path = (ROOT / "data/eval/extraction_dev.jsonl")
+    # file = path.open(encoding="utf-8")
+    # rows = [json.loads(line) for line in file]
     rows = [json.loads(l) for l in
             (ROOT / "data/eval/extraction_dev.jsonl").open(encoding="utf-8")]
-    # T0200: { id: "", input: "", expected: { category: "" } }
+
+    # rows list[dict] -> [{id: "", input: ""}, {id: "", input: ""}, {}]
     by_id = {r["id"]: r for r in rows}
+    # dict[dict] => { id: {id: "", input: ""}, id2: {} }
+    # T0200: { id: "", input: "", expected: { category: "" } }
+
+    # Error if invalid ID
     missing = [i for i in ids if i not in by_id]
     if missing:
         raise KeyError(f"unknown example ids: {missing}")
+
+    # list[dict] -> [{ id: "", input: "" }, {}, {}]
     return [by_id[i] for i in ids]
 
 
+# LLM Example -> Output {} -> Supporting Evidence.
+# Input ~~> Output
 _EVIDENCE_FOR = {
     "T0054": "Your agent mis-sold me this policy.",
     "T0097": "THIS IS THE THIRD TIME I am writing about teh double debit on AUR-7548999",
@@ -86,12 +103,27 @@ def few_shot_block(ids: list[str]) -> str:
         prompt += f"INPUT:\n{ex['input']}\n\nOUTPUT:\n{json.dumps(out)}\n"
     return prompt
 
+# IDS
+# Example:
+#
+# INPUT:
+# .........
+# 
+# OUTPUT:
+# { category: "", urgency: "", ... }
+# 
+# INPUT:
+# ...........
+#
+# OUTPUT:
+# { category: "", urgency: "", ... }
 
 # ---------------------------------------------------------------------------
 # The variants
 # ---------------------------------------------------------------------------
 
 def _fallback(e=""):
+    """Baseline TicketRecord. """
     return {
         "category": "information",
         "urgency": 1,
@@ -107,14 +139,21 @@ def _fallback(e=""):
     }
     
 
+# structured() -> calls llm with prompt + schema + system_prompt -- outputs -> structured JSON in the shape of (schema) TicketRecord
+
 def zero_shot(ticket: str, tier: str = "SMALL") -> dict:
     """TODO B: Lab 1 Part C, no examples. This is your baseline."""
+    # Zero Shot: Directly Provide the Ticket to the LLM without any alterations
     try:
-        rec=structured(ticket,schema=TicketRecordC, system=SYSTEM_PROMPT,tier=tier).model_dump()
+        rec=structured(ticket, schema=TicketRecordC, system=SYSTEM_PROMPT, tier=tier).model_dump()
+        # .model_dump converts into dict (json)
+        # Record (JSON)
+        # Add policy_number (obtained with regex) + contains_pii to the record
         rec.update(extract_deterministic(ticket))
+        # Perform escalation logic -> updated record -> final structured output
         return apply_business_rules(rec,ticket)
     except StructuredOutputError as e:
-        return _fallback(e)
+        return _fallback(e) # Fallback TicketRecord with needs_human_review: true and review_reason: error
     except BudgetExceeded:
         raise
 
@@ -123,6 +162,15 @@ def few_shot(ticket: str, tier: str = "SMALL") -> dict:
     """TODO B: zero_shot + the few-shot block."""
     try:
         prompt = ticket + "\n\n" + few_shot_block(FEW_SHOT_IDS)
+        # Hi, my name ...
+        # ---------------
+        # Examples
+        # INPUT
+        # ...
+        # OUT
+        # ...
+
+
         record = structured(prompt, schema=TicketRecordC, system=SYSTEM_PROMPT, tier=tier)
         res = record.model_dump()
         res.update(extract_deterministic(ticket))
@@ -132,6 +180,8 @@ def few_shot(ticket: str, tier: str = "SMALL") -> dict:
         return _fallback(e)
     except BudgetExceeded:
         raise
+
+# TicketRecordC
 
 class TicketRecordReasoned(BaseModel):
     """TODO B: add a `reasoning: str` field FIRST (T2 §3.3).
@@ -227,6 +277,7 @@ def few_shot_reasoned(ticket: str, tier: str = "SMALL") -> dict:
     """TODO B: few_shot with TicketRecordReasoned."""
     try:
         prompt = ticket + "\n\n" + few_shot_block(FEW_SHOT_IDS)
+        # TicketRecordReasoned includes reasoning field
         record = structured(prompt, schema=TicketRecordReasoned, system=SYSTEM_PROMPT, tier=tier)
         res = record.model_dump()
         res.update(extract_deterministic(ticket))
@@ -252,13 +303,14 @@ def cascade(ticket: str) -> dict:
     """
     trigger = False
 
-    prompt = ticket + "\n\n" + few_shot_block(FEW_SHOT_IDS)    
+    prompt = ticket + "\n\n" + few_shot_block(FEW_SHOT_IDS)
 
     # Ask two smaller models for the structred output.
     # s1: zero temperature. strict response
     # s2: 0.7 temperature. creative response
-    s1 = s2 = _fallback("SMALL sample failed")
+    s1 = s2 = _fallback("SMALL sample failed") # Initialize to something
     try:
+        # Temperature -> Entropy / Randomness -> "Creative"
         s1 = structured(prompt, schema=TicketRecordC, system=SYSTEM_PROMPT,
                         tier="SMALL", temperature=0.0).model_dump()
         s2 = structured(prompt, schema=TicketRecordC, system=SYSTEM_PROMPT,
@@ -266,7 +318,7 @@ def cascade(ticket: str) -> dict:
     except StructuredOutputError as e:
         trigger = True     # If validation fails, trigger MAIN model
 
-    # or if the evidence is empty or too short
+    # or if the evidence is empty or too short (less than 40 character)
     if len(s1['evidence'].strip()) < 40:
          trigger = True
     # or If the two models disagree...
