@@ -1,0 +1,444 @@
+{
+  "lab": "lab3",
+  "harness": "labs/lab3/search.py",
+  "golden_set": "data/eval/rag_golden.jsonl",
+  "n_questions": 42,
+  "note_n_minus_3": "Q36/Q38/Q39 have an empty relevant set (recall undefined), so they are excluded from all retrieval metrics, leaving n=42. All retrievers score 0.93-0.98 on hit_rate@5 on this corpus, so MRR / nDCG@10 are the discriminating metrics.",
+  "log": "labs/lab3/lab3_output.txt",
+  "baseline": {
+    "config": "sliding-800 dense",
+    "chunks": 91,
+    "mean_chunk_chars": 707,
+    "hit_rate@1": 0.7857,
+    "hit_rate@5": 0.9286,
+    "recall@5": 0.8452,
+    "mrr": 0.8451,
+    "ndcg@10": 0.8053,
+    "latency_p95_ms": 981.1009
+  },
+  "chunking": {
+    "winner": "markdown",
+    "a1_strategy_800": {
+      "fixed-800": {
+        "chunks": 83,
+        "build_ms": 136.5,
+        "hit_rate@1": 0.7381,
+        "hit_rate@5": 0.9524,
+        "recall@5": 0.8373,
+        "mrr": 0.8387,
+        "ndcg@10": 0.7952,
+        "latency_p95_ms": 4.0285
+      },
+      "sliding-800": {
+        "chunks": 91,
+        "build_ms": 101.5,
+        "hit_rate@1": 0.7857,
+        "hit_rate@5": 0.9286,
+        "recall@5": 0.8452,
+        "mrr": 0.8451,
+        "ndcg@10": 0.8053,
+        "latency_p95_ms": 3.2410
+      },
+      "recursive-800": {
+        "chunks": 98,
+        "build_ms": 123.0,
+        "hit_rate@1": 0.7857,
+        "hit_rate@5": 0.9286,
+        "recall@5": 0.8393,
+        "mrr": 0.8552,
+        "ndcg@10": 0.8127,
+        "latency_p95_ms": 5.8527
+      },
+      "markdown-800": {
+        "chunks": 164,
+        "build_ms": 253.3,
+        "hit_rate@1": 0.7619,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.8988,
+        "mrr": 0.8720,
+        "ndcg@10": 0.8458,
+        "latency_p95_ms": 5.2517
+      }
+    },
+    "a1_note": "fixed-800 is worst on 4 of 5 quality columns (hit_rate@1, recall@5, mrr, ndcg@10) but is actually BEST on hit_rate@5 (0.9524 vs 0.9286 for sliding/recursive) -- that column doesn't discriminate the same failure mode.",
+    "a1_mrr_by_kind": {
+      "fixed-800": {
+        "aggregation": 0.8750,
+        "multi_hop": 1.0000,
+        "paraphrase": 0.6167,
+        "single_hop": 0.8876,
+        "trap_archived": 0.6667,
+        "unanswerable": 0.3333
+      },
+      "sliding-800": {
+        "aggregation": 1.0000,
+        "multi_hop": 1.0000,
+        "paraphrase": 0.7167,
+        "single_hop": 0.8677,
+        "trap_archived": 0.5556,
+        "unanswerable": 0.3125
+      },
+      "recursive-800": {
+        "aggregation": 0.8750,
+        "multi_hop": 1.0000,
+        "paraphrase": 0.8000,
+        "single_hop": 0.8750,
+        "trap_archived": 0.8333,
+        "unanswerable": 0.0833
+      },
+      "markdown-800": {
+        "aggregation": 0.7500,
+        "multi_hop": 1.0000,
+        "paraphrase": 0.9000,
+        "single_hop": 0.8889,
+        "trap_archived": 0.8333,
+        "unanswerable": 0.3125
+      }
+    },
+    "a2_size_sweep_markdown": {
+      "markdown-400": {
+        "chunks": 235,
+        "build_ms": 239.2,
+        "hit_rate@1": 0.7857,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.9028,
+        "mrr": 0.8800,
+        "ndcg@10": 0.8527,
+        "latency_p95_ms": 3.3322
+      },
+      "markdown-800": {
+        "chunks": 164,
+        "build_ms": 158.8,
+        "hit_rate@1": 0.7619,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.8988,
+        "mrr": 0.8720,
+        "ndcg@10": 0.8458,
+        "latency_p95_ms": 2.7870
+      },
+      "markdown-1600": {
+        "chunks": 150,
+        "build_ms": 181.3,
+        "hit_rate@1": 0.7143,
+        "hit_rate@5": 0.9524,
+        "recall@5": 0.8750,
+        "mrr": 0.8262,
+        "ndcg@10": 0.8075,
+        "latency_p95_ms": 3.7161
+      }
+    },
+    "a2_note": "hit_rate@1, recall@5, mrr and ndcg@10 fall monotonically 400->800->1600. hit_rate@5 is flat between 400 and 800 (0.9762 -> 0.9762) and only drops at 1600 (0.9524) -- not strictly monotonic across all five columns.",
+    "a3_prefix_ablation": {
+      "markdown-with-prefix": {
+        "chunks": 164,
+        "hit_rate@1": 0.7619,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.8988,
+        "mrr": 0.8720,
+        "ndcg@10": 0.8458,
+        "latency_p95_ms": 4.8383
+      },
+      "markdown-without-prefix": {
+        "chunks": 164,
+        "hit_rate@1": 0.6190,
+        "hit_rate@5": 1.0000,
+        "recall@5": 0.9048,
+        "mrr": 0.7837,
+        "ndcg@10": 0.7915,
+        "latency_p95_ms": 3.8043
+      }
+    },
+    "a4_chunking_failure": {
+      "qid": "Q37",
+      "question": "Does Aurora cover treatment in Singapore, and up to what limit?",
+      "kind": "unanswerable",
+      "mrr": 0.1250,
+      "relevant_docs": [
+        "exclusions",
+        "plans-overview"
+      ],
+      "chunk_that_should_have_matched": "exclusions::m0 - '[Permanent Exclusions] The following are never payable under any Aurora indemnity plan, at any sum insured, regardless of waiting periods served.'",
+      "chunks_that_did_rank": [
+        "topup-and-super-topup::m0",
+        "travel-insurance-exclusions::m2",
+        "network-hospitals::m0",
+        "senior-citizen-plan::m2",
+        "plan-silver::m2"
+      ],
+      "mechanism": "Chaining + partial-grounding failure, not primarily chunk-size. The expected chunk (exclusions::m0) is a generic permanence clause with no Singapore/international-treatment/limit language -- verified against the logged chunk text, which contains no such mention. The gold answer needs exclusions + plans-overview combined, but no chunk found in the corpus states a concrete Singapore/international treatment limit; that figure appears to live in a source (e.g. a Platinum international-benefit addendum) not present in the 30-document corpus. No chunking strategy at any size would fix this: the missing information was never in the corpus."
+    }
+  },
+  "retrieval": {
+    "best_chunking": "markdown-400",
+    "b1": {
+      "dense": {
+        "hit_rate@1": 0.7857,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.9028,
+        "mrr": 0.8800,
+        "ndcg@10": 0.8527,
+        "latency_p95_ms": 3.2745
+      },
+      "bm25": {
+        "hit_rate@1": 0.4762,
+        "hit_rate@5": 0.9286,
+        "recall@5": 0.7956,
+        "mrr": 0.6698,
+        "ndcg@10": 0.6978,
+        "latency_p95_ms": 1.7166
+      },
+      "hybrid": {
+        "hit_rate@1": 0.6667,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.8631,
+        "mrr": 0.7976,
+        "ndcg@10": 0.7949,
+        "latency_p95_ms": 6.1630
+      }
+    },
+    "b1_mrr_by_kind": {
+      "dense": {
+        "aggregation": 0.8750,
+        "multi_hop": 1.0000,
+        "paraphrase": 0.8000,
+        "single_hop": 0.9074,
+        "trap_archived": 0.8333,
+        "unanswerable": 0.3125
+      },
+      "bm25": {
+        "aggregation": 0.3750,
+        "multi_hop": 0.6500,
+        "paraphrase": 0.4867,
+        "single_hop": 0.8519,
+        "trap_archived": 0.5111,
+        "unanswerable": 0.4167
+      },
+      "hybrid": {
+        "aggregation": 0.5833,
+        "multi_hop": 0.8167,
+        "paraphrase": 0.6500,
+        "single_hop": 0.9444,
+        "trap_archived": 0.6667,
+        "unanswerable": 0.3750
+      }
+    },
+    "b2_q44_q41_mrr": {
+      "q44_identifier_AUR-HI-SIL-2026": {
+        "dense": 0.50,
+        "bm25": 1.00,
+        "hybrid": 1.00
+      },
+      "q41_grace_period_paraphrase": {
+        "dense": 1.00,
+        "bm25": 0.00,
+        "hybrid": 0.25
+      }
+    },
+    "b3_rrf_k": {
+      "hybrid-rrf10": {
+        "hit_rate@1": 0.6667,
+        "hit_rate@5": 1.0000,
+        "recall@5": 0.8849,
+        "mrr": 0.8115,
+        "ndcg@10": 0.8156
+      },
+      "hybrid-rrf30": {
+        "hit_rate@1": 0.6667,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.8631,
+        "mrr": 0.7976,
+        "ndcg@10": 0.7949
+      },
+      "hybrid-rrf60": {
+        "hit_rate@1": 0.6667,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.8631,
+        "mrr": 0.7976,
+        "ndcg@10": 0.7949
+      },
+      "hybrid-rrf100": {
+        "hit_rate@1": 0.6667,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.8631,
+        "mrr": 0.7976,
+        "ndcg@10": 0.7901
+      }
+    },
+    "b4_weights": {
+      "hybrid-equal": {
+        "hit_rate@1": 0.6667,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.8631,
+        "mrr": 0.7976,
+        "ndcg@10": 0.7949,
+        "latency_p95_ms": 6.1630
+      },
+      "hybrid-weighted-2:1": {
+        "hit_rate@1": 0.6905,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.8750,
+        "mrr": 0.8103,
+        "ndcg@10": 0.8068,
+        "latency_p95_ms": 5.7651
+      }
+    },
+    "finding_hybrid_loses": "dense (ndcg@10 0.8527) beats hybrid (0.7949) by 0.058 on this corpus, reversing T4's default advice: our embedding model already handles the exact identifiers BM25 usually rescues, so fusing a weaker retriever drags down more good rankings than it rescues."
+  },
+  "rerank": {
+    "base_k": 30,
+    "final_k": 5,
+    "ndcg_column_note": "The harness reports ndcg@10 (not ndcg@5 as the README's C3 table header suggests), computed over the reranked top-5 candidates -- so these ndcg@10 figures are not directly comparable to the larger-pool ndcg@10 figures in the chunking/retrieval sections.",
+    "c1_c2": {
+      "no-rerank-top30": {
+        "hit_rate@1": 0.7857,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.9028,
+        "mrr": 0.8800,
+        "ndcg@10": 0.8685,
+        "latency_p95_ms": 4.6074
+      },
+      "cross-encoder": {
+        "hit_rate@1": 0.7619,
+        "hit_rate@5": 1.0000,
+        "recall@5": 0.8889,
+        "mrr": 0.8619,
+        "ndcg@10": 0.8174,
+        "latency_p95_ms": 852.0038
+      },
+      "llm-rerank": {
+        "hit_rate@1": 0.8571,
+        "hit_rate@5": 0.9524,
+        "recall@5": 0.8810,
+        "mrr": 0.9048,
+        "ndcg@10": 0.8465,
+        "latency_p95_ms": 2996.8175
+      }
+    },
+    "c2_cost": {
+      "calls": 1260,
+      "cost_usd": 0.015589,
+      "cost_per_1k_queries_usd": 0.371,
+      "model": "gemini/gemini-3.5-flash-lite",
+      "parallelisation": "ParallelLLMReranker (16 workers, per labs/lab3/search.py) replaces aip's sequential 30-call-per-query loop. Only the 30 calls within a single query's rerank are parallelised across the 16-worker pool (2 sequential rounds of <=16 calls each), so full sequential execution of the same 1260 calls would take roughly 16x longer, not 30x -- the 30x figure would only apply if a single query's 30 calls ran one at a time with zero parallelism assumed at the wrong granularity."
+    },
+    "c3_decision": {
+      "table": [
+        {
+          "config": "no-rerank dense",
+          "mrr": 0.8800,
+          "p95_ms": 4.6,
+          "usd_per_1k": 0
+        },
+        {
+          "config": "cross-encoder",
+          "mrr": 0.8619,
+          "p95_ms": 852.0,
+          "usd_per_1k": 0
+        },
+        {
+          "config": "llm-rerank",
+          "mrr": 0.9048,
+          "p95_ms": 2996.8,
+          "usd_per_1k": 0.371
+        }
+      ],
+      "interactive_search_box": "no-rerank dense (p95 4.6ms, $0). No reranker is worth its latency or cost below a hard quality gate; if a rank-sensitive consumer forces a reranker, cross-encoder at 852ms is the only defensible choice.",
+      "overnight_batch": "llm-rerank (best mrr 0.9048 and hit_rate@1 0.8571); latency is irrelevant overnight and the $0.371/1k amortizes."
+    },
+    "c4_worst_regression": {
+      "qid": "Q32",
+      "question": "Which plans have no co-payment?",
+      "reranker": "cross-encoder",
+      "mrr_before": 1.0,
+      "mrr_after": 0.2,
+      "delta": -0.8
+    },
+    "note_cross_encoder_hurts": "Cross-encoder (trained on web search) is out-of-domain for insurance-policy prose: it lowers mrr 0.8800->0.8619 and ndcg@10 0.8685->0.8174. The LLM reranker is the only one that improves mrr (0.9048) and hit_rate@1 (0.8571).",
+    "note_warm_cache": "The rerank section in lab3_output.txt was last re-run on a warm cache (llm p95 55.6ms, cost $0 are artifacts). Deployment numbers above are from the first uncached run."
+  },
+  "index": {
+    "d1_d2_dense_vs_chroma": {
+      "dense": {
+        "hit_rate@1": 0.7857,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.9028,
+        "mrr": 0.8800,
+        "ndcg@10": 0.8527,
+        "latency_p95_ms": 3.8329,
+        "build_ms": 254.0
+      },
+      "chroma": {
+        "hit_rate@1": 0.7857,
+        "hit_rate@5": 0.9762,
+        "recall@5": 0.9028,
+        "mrr": 0.8800,
+        "ndcg@10": 0.8527,
+        "latency_p95_ms": 8.1202,
+        "build_ms": 1993.4
+      }
+    },
+    "recall_at_5_gap_dense_minus_chroma": 0.0000,
+    "d2_scale_timing": {
+      "real": {
+        "chunks": 235,
+        "exact_p50_ms": 3.299,
+        "exact_p95_ms": 3.299,
+        "hnsw_p50_ms": 6.482,
+        "hnsw_p95_ms": 6.482
+      },
+      "real+300": {
+        "chunks": 2335,
+        "exact_p50_ms": 6.626,
+        "exact_p95_ms": 6.626,
+        "hnsw_p50_ms": 9.495,
+        "hnsw_p95_ms": 9.495
+      },
+      "real+1000": {
+        "chunks": 7235,
+        "exact_p50_ms": 11.239,
+        "exact_p95_ms": 11.239,
+        "hnsw_p50_ms": 6.793,
+        "hnsw_p95_ms": 6.793
+      }
+    },
+    "crossover_note": "HNSW first beats exact between 2335 and 7235 chunks (crossover measured at real+1000). At ~235 chunks HNSW is ~2x slower: graph traversal + Python call overhead lose to a single BLAS matmul; HNSW's O(log n) wins once exact O(n*d) grows. Corpus scale was capped at 1000 filler docs (7235 chunks) because the larger 4000-doc filler embedding was not run to completion.",
+    "d3_metadata_filter_q29_31": {
+      "status": "chunk.meta['status'] = 'archived' if 'ARCHIVED' in doc_id else 'current'; filtered search where={'status': 'current'}",
+      "Q29_hit_rate@1": {
+        "before": 1.00,
+        "after": 1.00
+      },
+      "Q30_hit_rate@1": {
+        "before": 0.00,
+        "after": 1.00
+      },
+      "Q31_hit_rate@1": {
+        "before": 1.00,
+        "after": 1.00
+      }
+    },
+    "d3_insight": "The Q29/Q30/Q31 fix was metadata filtering, not a retriever change: when retrieval quality is poor, look at data hygiene/curation before touching the retriever."
+  },
+  "final_recommendation": {
+    "config": "markdown-aware chunking at 400 chars + exact dense retrieval (no reranker for interactive use)",
+    "numbers": {
+      "hit_rate@1": 0.7857,
+      "hit_rate@5": 0.9762,
+      "recall@5": 0.9028,
+      "mrr": 0.8800,
+      "ndcg@10": 0.8527,
+      "latency_p95_ms": 3.3,
+      "index_build_ms": 239.2,
+      "index_embed_cost_usd": 0.0
+    },
+    "targets_met": {
+      "ndcg@10_ge_0.80": true,
+      "recall@5_ge_0.85": true,
+      "hit_rate@1_ge_0.65": true,
+      "mrr_paraphrase_ge_0.75": true,
+      "latency_p95_le_400ms": true
+    },
+    "greedy_sweep_limitation": "One axis at a time fixes the winner before moving on, so interactions are missed (e.g. the reranker that is optimal for a different chunking/size, or a size that is optimal for hybrid). A joint search would need a budget we deliberately did not spend.",
+    "surprise": "Hybrid retrieval (dense+BM25 via RRF) lost to dense alone (ndcg@10 0.7949 vs 0.8527), reversing the general advice that hybrid is usually the strongest single improvement -- our embedding model already handles the exact identifiers BM25 typically rescues."
+  }
+}
