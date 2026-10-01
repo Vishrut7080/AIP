@@ -108,6 +108,13 @@ def _judge_score(verdict: dict, default: int = 0) -> int | None:
 
 
 def judge_faithfulness(answer_text: str, context: str) -> int | None:
+    """TODO D1: improve JUDGE_RUBRIC_FAITHFULNESS and return 0 or 1.
+
+    Things the shipped rubric does not yet handle well:
+      - a partial refusal (answers part, refuses part)
+      - an answer that cites correctly but paraphrases into a stronger claim
+      - an answer that is right about the world and wrong about the context
+    """
     """Improve on JUDGE_RUBRIC_FAITHFULNESS (see RUBRIC_FAITHFULNESS)."""
     verdict = llm_judge(RUBRIC_FAITHFULNESS.format(
         context=context[:8000], answer=answer_text), tier="LARGE")
@@ -115,6 +122,9 @@ def judge_faithfulness(answer_text: str, context: str) -> int | None:
 
 
 def judge_correctness(question: str, candidate: str, reference: str) -> int | None:
+    """TODO D1: returns 0, 1 or 2. Handle refusal cases explicitly --
+    a correct refusal on an unanswerable question must score 2, and the
+    shipped rubric does not say so."""
     """0, 1 or 2, with refusals scored explicitly (see RUBRIC_CORRECTNESS)."""
     verdict = llm_judge(RUBRIC_CORRECTNESS.format(
         question=question, reference=reference, candidate=candidate), tier="LARGE")
