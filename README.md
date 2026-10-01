@@ -6,6 +6,62 @@
 
 ---
 
+## Run the service in under five minutes
+
+Lab 7's deliverable. On a clean machine, with no API key:
+
+```bash
+git clone <this repo> && cd AI-in-Practice-Lab1
+python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # Windows
+# source .venv/bin/activate && pip install -r requirements.txt           # macOS/Linux
+AIP_OFFLINE=1 .venv/Scripts/python -m uvicorn labs.lab7.service:app --port 8000
+```
+
+The corpus index (`data/index/`, 2.9 MB) and the response cache
+(`.aip_cache/`) are committed, so the service starts with no network at all.
+
+Then:
+
+```bash
+curl localhost:8000/health
+# {"status":"ok","index":{"n_chunks":235,...},"model":{"generation_tier":"SMALL",...},
+#  "offline":true}
+```
+
+No API key is needed to inspect the service, and to replay the 45 golden test
+questions:
+
+```bash
+AIP_OFFLINE=1 curl -s localhost:8000/ask -H 'content-type: application/json' \
+  -d '{"question":"How long do I have to submit a reimbursement claim after discharge?"}'
+```
+
+> **Offline replay covers the golden set, not arbitrary questions.** The
+> committed cache holds a vector per test question, and with no provider there is
+> nothing to embed a *new* question with. An uncached question returns
+> **503 with `Retry-After`** — correctly, because the request is fine and the
+> service cannot serve it. For real answers, put a key in `.env` and drop
+> `AIP_OFFLINE=1`.
+
+**Optional UI** (needs the service running; live answers need an API key):
+
+```bash
+streamlit run labs/lab7/ui.py         # chat with expandable citations
+streamlit run labs/lab7/dashboard.py  # latency, cost, refusal alert
+```
+
+**Run the regression gate** — the same check CI runs on every push:
+
+```bash
+AIP_OFFLINE=1 python labs/lab7/gate.py
+# correctness 0.7750 >= 0.75  ok ...  GATE PASSED
+```
+
+Full numbers, including what the system is *not* safe for:
+[`EVALUATION_REPORT.md`](EVALUATION_REPORT.md).
+
+---
+
 ## Start here
 
 **New to the module?** Work through
