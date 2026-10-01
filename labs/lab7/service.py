@@ -418,6 +418,13 @@ def ask(req: AskRequest) -> AskResponse:
                 refused = True
             if refused:
                 _bump("refusals")
+                # C4. The dashboard's alert watches for this event, so it has to
+                # be a real span rather than a counter in memory -- a refusal is
+                # the one signal that distinguishes "the system changed" from
+                # "the provider got slow".
+                tracing.event("service.refused", question=req.question[:120],
+                              question_hash=hashlib.sha256(
+                                  _normalise(req.question).encode()).hexdigest()[:12])
 
             payload = {"answer": text, "refused": refused, "citations": cits,
                        "cost_usd": cost, "trace_id": span["span_id"],
@@ -522,6 +529,12 @@ def ask_stream(req: AskRequest) -> StreamingResponse:
                     text = ("[This answer could not be grounded in the provided "
                             "documents and has been withheld.]")
                     refused = True
+
+                if refused:
+                    _bump("refusals")
+                    tracing.event("service.refused",
+                                  question=req.question[:120],
+                                  streamed=True)
 
                 payload = {"answer": text, "refused": refused,
                            "citations": [c.model_dump() for c in cits],
