@@ -138,3 +138,113 @@ and is not penalised; not predicting is.
 +0.05, then "the answers are incomplete" is the wrong diagnosis and the limit is
 the model's reasoning rather than the prompt's brevity — in which case the next
 thing to try is decomposition for multi-hop, not more prompt words.
+
+---
+
+## Part C — the fix — **70 min**
+
+Rule 7, appended to the deployed `lenient` prompt (`rag.py`):
+
+> 7. If the sources state a second condition, limit, exception or variant that
+> changes the answer — a different plan, tier, term, or instalment case — state
+> it explicitly. Answering the general case alone is an incomplete answer, not a
+> correct one. Do not pad with anything the sources do not say.
+
+**One variable, verified.** Rules 1–6 are byte-identical to v1; the diff is the
+two lines of rule 7 and a blank. I first re-listed the whole rule set in the new
+variant and that introduced whitespace changes *inside the refusal sentence* —
+which would have made this a two-variable experiment. Fixed by appending to the
+shipped string instead.
+
+**Cost: $0.0114/query, no extra model call.** Inside the ≤2× rule.
+
+---
+
+## Part D — prove it
+
+### D1 — before/after, every Lab 4 metric
+
+| Metric | v1 | v2 | Δ |
+|---|---|---|---|
+| **correctness (0–2)** | **1.500** | **1.500** | **0.000** |
+| faithfulness | 0.956 | 0.911 | **−0.044** |
+| citation validity | 1.000 | 1.000 | 0.000 |
+| refusal recall | 0.800 | 0.600 | **−0.200** |
+| refusal precision | 0.571 | 0.429 | **−0.143** |
+| repair rate | 0.089 | 0.089 | 0.000 |
+| mean answer length | 202 ch | 227 ch | +25 |
+| cost / query | — | $0.0114 | ≤2× ✓ |
+
+**The prediction was wrong.** I predicted 1.60–1.70; correctness did not move.
+
+### D2 — the regression check — **three metrics got worse**
+
+The headline 0.000 is a **cancellation, not an absence of effect**: 4 questions
+improved and 4 previously-passing questions broke.
+
+**Recovered (4):**
+
+| | v1 → v2 | what happened |
+|---|---|---|
+| Q03 | 1 → 2 | added *"Maternity benefits are only available on Silver, Gold and Platinum"* — exactly the clause Part A predicted |
+| Q23 | 1 → 2 | named the crowded-out second hop |
+| Q41 | 0 → 2 | wrongful refusal resolved — gave the 30-day / 15-day instalment split |
+| Q43 | 0 → 2 | wrongful refusal resolved — 200 points, 1000 = 5% capped at 15% |
+
+**Regressed (4):**
+
+| | v1 → v2 | what happened |
+|---|---|---|
+| Q01 | 2 → 1 | added the **archived-2024 15-day policy** the gold answer deliberately omits. Faithful to the sources, wrong against the reference — the archived-document trap leaking into a single_hop question |
+| Q13 | 2 → 0 | became a wrongful refusal |
+| Q21 | 1 → 0 | became a wrongful refusal |
+| Q42 | 2 → 0 | became a wrongful refusal |
+
+Plus **Q06 and Q45 lost faithfulness (1 → 0)** with correctness unchanged. Rule 7
+asks the model to name a second condition, and it sometimes names one the sources
+do not support. That is the rule's failure mode, and it is visible in the
+faithfulness column rather than the correctness column.
+
+**The mechanism.** Rule 7 made the model *more willing to speak*. On the 9
+partial-credit cases that was right. But speaking more also made it speak when it
+should not — 3 new refusals, 2 unsupported additions. The gain and the cost come
+from the same instruction. This is the same shape as the reference's failure
+(`OVERVIEW.md:126`), arrived at by a different route: I avoided touching the
+refusal *threshold* and reintroduced the problem through the *completeness*
+requirement.
+
+**Worth noting which kind absorbed the damage.** `single_hop` was the strongest
+kind in v1 (1.722) and took the worst hit (1.611). `paraphrase` went the other
+way (1.200 → 1.600). So the rule helped exactly the cluster it was aimed at and
+damaged the cluster that was already working.
+
+### D3 — re-classifying what remains
+
+16 failures (v1: 17). **The distribution did not shift.** All 5 mode-4 ranking
+failures persist untouched — a prompt change cannot fix retrieval. Of the 12
+mode-6 failures, 3 recovered and 3 became new refusals, leaving 8.
+
+This is *not* the masked-problem case the handout describes. Nothing new was
+revealed; mode 6 simply traded three failures for three others.
+
+### D4 — the next fix
+
+**`final_k` 8 → 12, aimed at the 5 mode-4 ranking failures.** It is the only
+untouched cluster and nearly free. Expected 2–3 of 5 — lower than the count
+implies, because Q22 and Q35 need a specific *document* rather than more chunks.
+Refusal behaviour must be re-measured, not assumed.
+
+---
+
+## Verdict
+
+**Do not ship this.** Correctness is flat, three metrics regressed, and the
+target metric did not move at all.
+
+But the diagnosis was sound — Q03 and Q41/Q43 recovered *exactly* as Part A
+predicted, which is evidence the classifier is right. The failure was in the
+fix's blast radius, not its target. Rule 7's second half is the problem:
+*"Do not pad with anything the sources do not say"* is a prohibition, and
+prohibitions in a system prompt are weaker than the affirmative instruction
+preceding them. A fix that asks for completeness without a hard citation-enforced
+guard on the added clause is the shape that regressed.

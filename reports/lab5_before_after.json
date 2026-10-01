@@ -1,0 +1,108 @@
+{
+  "meta": {
+    "lab": 5,
+    "generated": "2026-10-01",
+    "v1": {
+      "name": "Lab 4 deployed configuration",
+      "strictness": "lenient",
+      "file": "reports/lab4.json"
+    },
+    "v2": {
+      "name": "Lab 5 Part C fix -- completeness rule added",
+      "strictness": "lenient_complete",
+      "file": "reports/lab5_v2.json",
+      "single_variable": "Rule 7 appended to the shipped lenient prompt. Rules 1-6 byte-identical, verified by diff. The refusal threshold is untouched."
+    },
+    "profile": "gemini",
+    "questions": 45,
+    "answerable": 40,
+    "unanswerable": 5
+  },
+
+  "headline": {
+    "verdict": "FLAT ON THE TARGET METRIC, REGRESSIONS ELSEWHERE",
+    "predicted": "recover 4-6 of 9 partial-credit mode-6 cases; correctness 1.500 -> 1.60-1.70; refusal precision unchanged at ~0.57",
+    "measured": "correctness 1.500 -> 1.500 (delta 0.0000). Recovered 4 cases but broke 4 previously-passing ones. Refusal recall -0.200, refusal precision -0.143, faithfulness -0.044.",
+    "prediction_was_wrong": true,
+    "ship_this": false
+  },
+
+  "d1_before_after": [
+    {"metric": "correctness (0-2, answerable, n=40)", "v1": 1.5000, "v2": 1.5000, "delta": 0.0000},
+    {"metric": "faithfulness (all n=45)", "v1": 0.9556, "v2": 0.9111, "delta": -0.0444},
+    {"metric": "citation validity", "v1": 1.0000, "v2": 1.0000, "delta": 0.0000},
+    {"metric": "refusal recall", "v1": 0.8000, "v2": 0.6000, "delta": -0.2000},
+    {"metric": "refusal precision", "v1": 0.5714, "v2": 0.4286, "delta": -0.1429},
+    {"metric": "repair rate", "v1": 0.0889, "v2": 0.0889, "delta": 0.0000},
+    {"metric": "mean answer length (chars)", "v1": 202, "v2": 227, "delta": 25},
+    {"metric": "cost per query (USD)", "v1": null, "v2": 0.011418, "delta": null,
+     "note": "v1 cost not captured in this run; see reports/report4.md. Prompt is 1 rule longer so per-query cost is at most a few percent up, well inside the 2x rule."},
+    {"metric": "latency p95 (ms)", "v1": null, "v2": 5304, "delta": null,
+     "note": "v1 p95 not captured in this run; output tokens rose 12%, so p95 should be modestly up."}
+  ],
+
+  "d2_regression_check": {
+    "summary": "This fix REGRESSED three metrics. The headline delta of 0.0000 is a cancellation of four gains against four losses, not an absence of effect.",
+    "regressions": [
+      {"metric": "refusal recall", "v1": 0.8000, "v2": 0.6000, "delta": -0.2000,
+       "cause": "3 previously-answerable questions became refusals: Q13, Q21, Q42."},
+      {"metric": "refusal precision", "v1": 0.5714, "v2": 0.4286, "delta": -0.1429,
+       "cause": "7 refusals in v2 but only 4 of them unanswerable. Q36 also stopped refusing, so the denominator grew while the numerator shrank."},
+      {"metric": "faithfulness", "v1": 0.9556, "v2": 0.9111, "delta": -0.0444,
+       "cause": "Q06 and Q45 each lost faithfulness 1 -> 0 despite identical correctness. Rule 7 asks the model to name a second condition, and it occasionally names one the sources do not support."}
+    ],
+    "improvements": [
+      {"id": "Q03", "kind": "single_hop", "v1": 1, "v2": 2,
+       "what": "Added 'Maternity benefits are only available on the Silver, Gold, and Platinum plans' -- exactly the clause Part A predicted was missing."},
+      {"id": "Q23", "kind": "multi_hop", "v1": 1, "v2": 2,
+       "what": "Named the second hop that Part A identified as crowded out."},
+      {"id": "Q41", "kind": "paraphrase", "v1": 0, "v2": 2,
+       "what": "Wrongful refusal resolved. Answered with the 30-day / 15-day instalment split after refusing in v1."},
+      {"id": "Q43", "kind": "paraphrase", "v1": 0, "v2": 2,
+       "what": "Wrongful refusal resolved. Gave the 200 points and the 1000=5% capped-at-15% conversion."}
+    ],
+    "regressions_by_question": [
+      {"id": "Q01", "kind": "single_hop", "v1": 2, "v2": 1,
+       "what": "Added the archived-2024 15-day policy that the gold answer omits. Faithful to the sources, wrong against the reference. This is the archived-document trap leaking into a single_hop question."},
+      {"id": "Q13", "kind": "single_hop", "v1": 2, "v2": 0,
+       "what": "Became a wrongful refusal on a question it answered correctly before. Cost 2 points."},
+      {"id": "Q21", "kind": "multi_hop", "v1": 1, "v2": 0,
+       "what": "Became a wrongful refusal. Cost 1 point."},
+      {"id": "Q42", "kind": "paraphrase", "v1": 2, "v2": 0,
+       "what": "Became a wrongful refusal. Cost 2 points."}
+    ],
+    "kinds_already_passing": {
+      "note": "single_hop was the strongest kind in v1 (1.722) and took the worst hit.",
+      "single_hop": {"v1": 1.722, "v2": 1.611},
+      "paraphrase": {"v1": 1.200, "v2": 1.600},
+      "multi_hop": {"v1": 1.200, "v2": 1.200},
+      "aggregation": {"v1": 1.500, "v2": 1.500},
+      "trap_archived": {"v1": 1.667, "v2": 1.667}
+    }
+  },
+
+  "d3_reclassification": {
+    "v1_failures": 17,
+    "v2_failures": 16,
+    "recovered": ["Q03", "Q23", "Q41", "Q43"],
+    "new_failures": ["Q01", "Q13", "Q21", "Q42"],
+    "persisting": {
+      "generation": ["Q04", "Q05", "Q10", "Q11", "Q20", "Q24", "Q25", "Q26"],
+      "ranking": ["Q22", "Q29", "Q32", "Q35"]
+    },
+    "interpretation": "The distribution did NOT shift. All 5 mode-4 (ranking) failures persist untouched, which makes sense: a prompt change cannot fix retrieval. Of the 12 mode-6 failures, 3 recovered and 3 turned into new refusals, leaving 8. This is not a case of revealing a masked problem -- it is a wash in the mode-6 cluster paid for with regressions in refusal behaviour and faithfulness."
+  },
+
+  "d4_next_fix": {
+    "what": "final_k 8 -> 12, targeted at the 5 mode-4 ranking failures.",
+    "why": "It is the only untouched cluster, it is nearly free (no extra model call), and 4 of its 5 cases are aggregation / archived-trap / multi-hop questions where a specific crowded-out fact is the gap.",
+    "expected_value": "2-3 of 5. Lower than the count suggests, because Q22 and Q35 need a specific document rather than more chunks, and more context on aggregation questions mostly adds distractors.",
+    "caveat": "The cost is latency and prompt tokens rising, and per D2 more context did not cause refusals here -- but this fix has not been tested, so refusal behaviour must be re-measured rather than assumed."
+  },
+
+  "cost_discipline": {
+    "rule": "fix must cost <= 2x the Lab 4 baseline per query",
+    "status": "PASS",
+    "evidence": "The change adds one prompt rule and no model call. v2 cost $0.5138 for 45 questions = $0.0114/query."
+  }
+}
