@@ -1,0 +1,155 @@
+[
+  {
+    "id": "Q03",
+    "kind": "single_hop",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "wrong even on gold context (correctness 1/2), so retrieval was never the problem",
+    "question": "Is maternity covered on the Bronze plan?",
+    "answer": "No, maternity is not covered on the Bronze plan at any sum insured [1][2]."
+  },
+  {
+    "id": "Q04",
+    "kind": "single_hop",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "wrong even on gold context (correctness 1/2), so retrieval was never the problem",
+    "question": "What is the waiting period for pre-existing diseases?",
+    "answer": "The waiting period for pre-existing diseases is 36 months on retail plans and Top-Up/Super Top-Up plans, unless explicitly waived in writing by Aurora [3][5][7]. However, under the Aurora Senior Care plan (for ages 60 and above), the waiting period for pre-existing diseases is 24 months [5]."
+  },
+  {
+    "id": "Q05",
+    "kind": "single_hop",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "wrong even on gold context (correctness 1/2), so retrieval was never the problem",
+    "question": "How long is the grace period for an annual policy?",
+    "answer": "The grace period for an annual policy is 30 days from the renewal due date [1][5]."
+  },
+  {
+    "id": "Q10",
+    "kind": "single_hop",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "wrong even on gold context (correctness 0/2), so retrieval was never the problem",
+    "question": "Who can I escalate to if Aurora rejects my claim and their internal response is unsatisfactory?",
+    "answer": "If you are not satisfied with the Stage 1 outcome, you can escalate the dispute to Aurora's Grievance Redressal Officer [2]. If Aurora's final response remains unsatisfactory or if they do not respond within 30 days of your original complaint, you may approach the Insurance Ombudsman for your region"
+  },
+  {
+    "id": "Q11",
+    "kind": "single_hop",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "wrong even on gold context (correctness 1/2), so retrieval was never the problem",
+    "question": "How much ambulance cover is there?",
+    "answer": "All plans include road ambulance cover of ₹5,000 per hospitalisation [1][6]. In addition, the Aurora Gold plan provides air ambulance coverage of up to ₹2,50,000 per policy year within India, subject to prior authorisation [5]."
+  },
+  {
+    "id": "Q20",
+    "kind": "multi_hop",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "wrong even on gold context (correctness 0/2), so retrieval was never the problem",
+    "question": "My mother is 63 and I want to add her to my policy. Which plans allow it and what changes?",
+    "answer": "I don't have enough information in the provided sources to answer that."
+  },
+  {
+    "id": "Q21",
+    "kind": "multi_hop",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "wrong even on gold context (correctness 1/2), so retrieval was never the problem",
+    "question": "I am switching from another insurer. Will my 3 years of waiting period carry over if I increase my sum insured?",
+    "answer": "Yes, the waiting periods you have already served will carry over when porting from another insurer, but only up to the sum insured of your previous policy, including any accrued no-claim bonus [1][2][6]. Any increase or incremental amount in the sum insured will be subject to fresh waiting periods ["
+  },
+  {
+    "id": "Q22",
+    "kind": "multi_hop",
+    "mode": 4,
+    "mode_name": "ranking",
+    "evidence": "all gold docs were in the top 30, but ['dependents-and-family-floater'] never reached the final context (final k=8)",
+    "question": "My baby was born last week. What do I need to do and by when?",
+    "answer": "To continue insurance coverage beyond the first 90 days, you must inform Aurora and add your newborn as a dependent within 90 days of birth to receive guaranteed issue without medical underwriting [1]. If filing a reimbursement claim for the delivery, you must submit the main claim within 30 days of"
+  },
+  {
+    "id": "Q23",
+    "kind": "multi_hop",
+    "mode": 4,
+    "mode_name": "ranking",
+    "evidence": "all gold docs were in the top 30, but the chunk holding the answer was crowded out (final k=8)",
+    "question": "Can I get an out-patient physiotherapy session reimbursed on Bronze?",
+    "answer": "The Out-patient benefit (OPD rider) is not available on the Bronze plan [1]. The provided sources do not contain specific information regarding reimbursement for physiotherapy sessions."
+  },
+  {
+    "id": "Q24",
+    "kind": "multi_hop",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "wrong even on gold context (correctness 1/2), so retrieval was never the problem",
+    "question": "I had a claim last year on Silver. What happens to my accumulated no-claim bonus?",
+    "answer": "Under the Aurora Silver plan, a claim reduces your accumulated no-claim bonus by 10 percentage points [1]. It does not reset your accumulated bonus to zero [1]."
+  },
+  {
+    "id": "Q25",
+    "kind": "multi_hop",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "wrong even on gold context (correctness 1/2), so retrieval was never the problem",
+    "question": "How much would a caesarean cost me out of pocket on Gold if the hospital bills 1,60,000?",
+    "answer": "Under the Gold plan, the maternity sub-limit for a Caesarean section is ₹1,00,000 [1]. Therefore, if the hospital bills ₹1,60,000, your out-of-pocket cost would be ₹60,000 [1]."
+  },
+  {
+    "id": "Q26",
+    "kind": "multi_hop",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "wrong even on gold context (correctness 1/2), so retrieval was never the problem",
+    "question": "Is knee replacement covered immediately after I buy the policy?",
+    "answer": "Knee replacement is not covered immediately unless it is required following an accident, in which case coverage applies from day one [1][5]. If the knee joint replacement is not due to an accident, it is subject to a 24-month waiting period [1][5]."
+  },
+  {
+    "id": "Q29",
+    "kind": "trap_archived",
+    "mode": 4,
+    "mode_name": "ranking",
+    "evidence": "all gold docs were in the top 30, but the chunk holding the answer was crowded out (final k=8)",
+    "question": "How many days do I have to respond to a query Aurora raises on my claim?",
+    "answer": "For general reimbursement claims, you have 45 days from the date of the query to respond, after which Aurora closes the claim [2][5]. For motor insurance claims, the deadline is 30 days from the date of the query [4]. (Archived 2024 rules also listed a 30-day deadline [6])."
+  },
+  {
+    "id": "Q32",
+    "kind": "aggregation",
+    "mode": 4,
+    "mode_name": "ranking",
+    "evidence": "all gold docs were in the top 30, but the chunk holding the answer was crowded out (final k=8)",
+    "question": "Which plans have no co-payment?",
+    "answer": "Aurora Gold has no co-payment (nil) at all ages [1]. Additionally, Aurora Silver has no co-payment for members below the age of 60 [2], and two variants of the Aurora Group Health corporate plans also have nil co-payment [6]."
+  },
+  {
+    "id": "Q35",
+    "kind": "aggregation",
+    "mode": 4,
+    "mode_name": "ranking",
+    "evidence": "all gold docs were in the top 30, but ['outpatient-and-wellness'] never reached the final context (final k=8)",
+    "question": "List everything that is excluded relating to dental treatment.",
+    "answer": "Dental treatment and oral surgery are permanently excluded under any Aurora indemnity plan, unless necessitated by an accidental injury requiring hospitalisation [2][3]. Additionally, out-patient dental work is listed as not covered by any plan [1]."
+  },
+  {
+    "id": "Q41",
+    "kind": "paraphrase",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "every relevant document AND the answer chunk were in the final context, and gold context still fixed the answer -- retrieval delivered everything, so this is generation",
+    "question": "If I skip paying on time, how long before I lose everything I've built up?",
+    "answer": "I don't have enough information in the provided sources to answer that."
+  },
+  {
+    "id": "Q43",
+    "kind": "paraphrase",
+    "mode": 6,
+    "mode_name": "generation",
+    "evidence": "every relevant document AND the answer chunk were in the final context, and gold context still fixed the answer -- retrieval delivered everything, so this is generation",
+    "question": "My dad smoked for years and quit through your programme. Does that get me anything?",
+    "answer": "I don't have enough information in the provided sources to answer that."
+  }
+]
