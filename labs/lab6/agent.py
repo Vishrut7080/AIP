@@ -383,7 +383,8 @@ def _run_loop(messages: list[dict], *, tier: str, max_seconds: float,
                                      "error": f"{type(exc).__name__}: {exc}"})
                 else:
                     tool_log.append({"tool": name, "args": args, "ok": True,
-                                     "result_preview": str(result)[:200]})
+                                     "result_preview": str(result)[:200],
+                                     "result_full": str(result)})
             else:
                 result = {"error": arg_error}
                 tool_log.append({"tool": name, "args": {}, "ok": False,
