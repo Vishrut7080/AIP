@@ -1,0 +1,321 @@
+{
+  "min_sim_tested": 0.7,
+  "n_pairs": 30,
+  "bands": [
+    {
+      "band": [
+        0.7,
+        0.8
+      ],
+      "n": 24,
+      "correct": 0,
+      "same_topic": 14
+    },
+    {
+      "band": [
+        0.8,
+        0.86
+      ],
+      "n": 3,
+      "correct": 0,
+      "same_topic": 1
+    },
+    {
+      "band": [
+        0.86,
+        0.9
+      ],
+      "n": 2,
+      "correct": 0,
+      "same_topic": 0
+    },
+    {
+      "band": [
+        0.9,
+        0.95
+      ],
+      "n": 1,
+      "correct": 0,
+      "same_topic": 0
+    }
+  ],
+  "highest_safe_band": null,
+  "note": "A cache hit on B returns A's answer. It is correct only if A's answer also answers B; cached_correct_for_b is the judge scoring exactly that.",
+  "pairs": [
+    {
+      "sim": 0.8355,
+      "a": "Q28",
+      "b": "Q42",
+      "same_kind": false,
+      "same_topic": [
+        "claims-process",
+        "network-hospitals"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7981,
+      "a": "Q07",
+      "b": "Q24",
+      "same_kind": false,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.784,
+      "a": "Q10",
+      "b": "Q40",
+      "same_kind": false,
+      "same_topic": [
+        "grievance-redressal"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7721,
+      "a": "Q10",
+      "b": "Q31",
+      "same_kind": false,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7555,
+      "a": "Q29",
+      "b": "Q31",
+      "same_kind": true,
+      "same_topic": [
+        "claims-timelines"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.754,
+      "a": "Q10",
+      "b": "Q29",
+      "same_kind": false,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7514,
+      "a": "Q01",
+      "b": "Q31",
+      "same_kind": false,
+      "same_topic": [
+        "claims-process",
+        "claims-timelines"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7423,
+      "a": "Q17",
+      "b": "Q40",
+      "same_kind": false,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7411,
+      "a": "Q03",
+      "b": "Q23",
+      "same_kind": false,
+      "same_topic": [
+        "plan-bronze"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7387,
+      "a": "Q02",
+      "b": "Q34",
+      "same_kind": false,
+      "same_topic": [
+        "plans-overview"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7352,
+      "a": "Q02",
+      "b": "Q19",
+      "same_kind": false,
+      "same_topic": [
+        "plan-silver"
+      ],
+      "cached_correct_for_b": 1
+    },
+    {
+      "sim": 0.7304,
+      "a": "Q04",
+      "b": "Q26",
+      "same_kind": false,
+      "same_topic": [
+        "pre-existing-conditions"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7292,
+      "a": "Q20",
+      "b": "Q34",
+      "same_kind": false,
+      "same_topic": [
+        "dependents-and-family-floater",
+        "plans-overview"
+      ],
+      "cached_correct_for_b": 1
+    },
+    {
+      "sim": 0.7285,
+      "a": "Q06",
+      "b": "Q40",
+      "same_kind": false,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7253,
+      "a": "Q19",
+      "b": "Q25",
+      "same_kind": true,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7252,
+      "a": "Q04",
+      "b": "Q21",
+      "same_kind": false,
+      "same_topic": [
+        "pre-existing-conditions"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7244,
+      "a": "Q10",
+      "b": "Q17",
+      "same_kind": true,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7222,
+      "a": "Q19",
+      "b": "Q34",
+      "same_kind": false,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7194,
+      "a": "Q07",
+      "b": "Q09",
+      "same_kind": true,
+      "same_topic": [
+        "plan-gold"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7134,
+      "a": "Q17",
+      "b": "Q31",
+      "same_kind": false,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7111,
+      "a": "Q16",
+      "b": "Q30",
+      "same_kind": false,
+      "same_topic": [
+        "claims-process",
+        "claims-timelines"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7088,
+      "a": "Q31",
+      "b": "Q40",
+      "same_kind": false,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7086,
+      "a": "Q16",
+      "b": "Q29",
+      "same_kind": false,
+      "same_topic": [
+        "claims-timelines"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.705,
+      "a": "Q16",
+      "b": "Q31",
+      "same_kind": false,
+      "same_topic": [
+        "claims-process",
+        "claims-timelines"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.7006,
+      "a": "Q16",
+      "b": "Q28",
+      "same_kind": false,
+      "same_topic": [
+        "claims-process"
+      ],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.9032,
+      "a": "PARA",
+      "b": "TRAP",
+      "same_kind": true,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.881,
+      "a": "PARA",
+      "b": "TRAP",
+      "same_kind": true,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.8653,
+      "a": "PARA",
+      "b": "TRAP",
+      "same_kind": true,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.8386,
+      "a": "PARA",
+      "b": "TRAP",
+      "same_kind": true,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    },
+    {
+      "sim": 0.8296,
+      "a": "PARA",
+      "b": "TRAP",
+      "same_kind": true,
+      "same_topic": [],
+      "cached_correct_for_b": 0
+    }
+  ]
+}

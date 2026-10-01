@@ -51,7 +51,31 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
 RETRIEVE_K = 16
 FINAL_K = 8
 STRICTNESS_NAME = "lenient_complete"
-SEMANTIC_CACHE_THRESHOLD = 0.95  # B1: measured, see /cache/sweep
+# B1 -- MEASURED, and the measurement says do not ship this.
+#
+# `python labs/lab7/semantic_cache.py` over the 42 answerable golden questions
+# plus 5 adversarial paraphrase pairs found NO similarity at which a semantic
+# cache hit is reliably correct:
+#
+#   band              n    correct for B    same topic
+#   [0.700, 0.800)   24      0/24 (0%)       14/24
+#   [0.800, 0.860)    3      0/3  (0%)        1/3
+#   [0.860, 0.900)    2      0/2  (0%)        0/2
+#   [0.900, 0.950)    1      0/1  (0%)        0/1
+#
+# Zero of thirty. The highest similarity anywhere in the suite is 0.8355, and at
+# 0.95 -- the value the handout suggests -- the cache never fires at all. So the
+# threshold is not merely too low; there is no threshold that works here, and the
+# feature delivers a 0% hit rate at the setting that would risk a wrong answer.
+#
+# The failure mode is not "different question", it is "same shape, different
+# fact": "grace period for an ANNUAL policy" vs "for an INSTALMENT policy" is
+# 30 days against 15, and no cosine separates them from a genuine repeat.
+#
+# It stays implemented, off by default, because the measurement is the deliverable
+# and /cache/sweep exposes it. Set SEMANTIC_CACHE_ON=1 to enable.
+SEMANTIC_CACHE_THRESHOLD = 0.95
+SEMANTIC_CACHE_ON = False  # see labs/lab7/semantic_cache.py before changing this
 
 # B4 -- the latency budget, and which stage to optimise first.
 #
@@ -216,8 +240,9 @@ class AskRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1000)
     top_k: int = Field(default=FINAL_K, ge=1, le=20)
     mode: str = Field(default="rag", pattern="^(rag|tools)$")
-    semantic_cache: bool = Field(default=True,
-                                 description="B1: off to measure the exact layer alone")
+    semantic_cache: bool = Field(default=SEMANTIC_CACHE_ON,
+                                 description="B1: measured unsafe at every "
+                                             "threshold; see semantic_cache.py")
 
 
 class Citation(BaseModel):
