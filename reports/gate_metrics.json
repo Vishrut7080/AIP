@@ -1,0 +1,27 @@
+{
+  "correctness": 0.525,
+  "faithfulness": 0.9778,
+  "citation_validity": 1.0,
+  "refusal_recall": 1.0,
+  "refusal_precision": 1.0,
+  "hit_rate_at_5": 1.0,
+  "cost_per_query_usd": 0.000214,
+  "p95_latency_ms": 6.6,
+  "_n_questions": 45,
+  "_n_answerable": 40,
+  "_n_refusals": 16,
+  "_n_judged_correctness": 40,
+  "_n_cache_misses": 0,
+  "_cache_miss_ids": [],
+  "_cache_miss_note": "A cache miss under AIP_OFFLINE=1 means the config under test is not the one the cache was recorded against. Treated as a zero-quality answer, not an exception.",
+  "_p50_wallclock_ms": 5.1,
+  "_p99_wallclock_ms": 7.2,
+  "_latency_caveat": "Wall clock on a cache-replaying machine. Under AIP_OFFLINE=1 a cache hit costs 0 ms, so this measures code + retrieval + cache lookup, NOT provider latency. The deployed p95 is in EVALUATION_REPORT.md from an online run.",
+  "_config": {
+    "strictness": "lenient_complete",
+    "final_k": 1,
+    "tier": "SMALL",
+    "retrieve_k": 16,
+    "hit_k": 5
+  }
+}
