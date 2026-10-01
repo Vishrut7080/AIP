@@ -1,12 +1,25 @@
 .venv/
 __pycache__
-.aip_cache/
 .aip_traces/
 .pytest_cache/
+
+# Lab 7 DELIBERATE EXCEPTIONS to the defaults above.
+#
+# .aip_cache/ and .github/ are ordinarily ignored, but the CI regression gate
+# (labs/lab7/gate.py) runs with AIP_OFFLINE=1 and replays the committed response
+# cache. Without these files tracked, CI cannot run at all: every request is a
+# CacheMiss. README.md (Part D) says "Commit the cache" for exactly this reason.
+#
+# The cache holds prompts and model responses for a teaching corpus of public
+# insurance documents. It contains no secrets -- .env stays ignored.
+!.aip_cache/
+!.aip_cache/calls.sqlite3
+!.github/
+!.github/workflows/
+!.github/workflows/eval.yml
 
 Test_by_self
 .env
 corpus_scaled
 ans
 zip/*
-.github/*
