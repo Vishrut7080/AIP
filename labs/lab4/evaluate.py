@@ -132,7 +132,7 @@ def judge_correctness(question: str, candidate: str, reference: str) -> int | No
 
 
 def build_retriever():
-    """My Lab 3 winning configuration, not the placeholder.
+    """TODO My Lab 3 winning configuration, not the placeholder.
 
     markdown-aware chunking at 400 chars (235 chunks) + exact dense retrieval.
     `markdown_chunks` takes no overlap parameter, so size=400 alone is the

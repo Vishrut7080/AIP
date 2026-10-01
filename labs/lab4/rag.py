@@ -55,6 +55,11 @@ Rules, in priority order:
 {UNTRUSTED_SYSTEM_CLAUSE}
 """
 
+# TODO A: write this before you read aip/rag.py::ANSWER_SYSTEM.
+ANSWER_SYSTEM = f"""\
+TODO. Six required elements, see the handout Part A. Include
+{UNTRUSTED_SYSTEM_CLAUSE!r} or your own equivalent -- Lab 6 will attack this.
+"""
 
 # The refusal dial (Part C4). All three prompts are identical except rule 1/2's
 # refusal threshold, so the ONLY thing that changes between runs is how readily
@@ -124,17 +129,17 @@ _CITATION_RE = re.compile(r"\[(\d+)\]")
 
 def validate_answer(text: str, n_sources: int,
                     finish_reason: str | None = None) -> dict:
-    """B2. Validate the output contract established in Part A.
-
-    Returns at least:
-        {"valid": bool, "refused": bool, "invalid_citations": [ints],
-         "n_citations": int, "truncated": bool, "reason": str}
-
-      - every [n] is between 1 and n_sources (aip.guards.enforce_citations)
-      - not truncated (finish_reason == "length"): a cut-off prose answer
-        LOOKS FINE -- T1 failure mode 4, the dangerous one
-      - a non-refusal answer contains at least one citation
-      - a refusal is allowed to carry no citations
+    """TODO B2. Return a dict with at least:
+    
+            {"valid": bool, "refused": bool, "invalid_citations": [ints],
+             "n_citations": int, "truncated": bool, "reason": str}
+    
+        Checks:
+          - every [n] is between 1 and n_sources
+          - not truncated (finish_reason == "length" means the answer was cut off,
+            and a cut-off prose answer LOOKS FINE -- this is T1 failure mode 4 and
+            it is the dangerous one)
+          - a non-refusal answer contains at least one citation
     """
     text = (text or "").strip()
     truncated = finish_reason == "length"
@@ -247,6 +252,12 @@ def _solve(question: str, hits: list[Hit], *, tier: str,
 def answer_question(question: str, retriever: Retriever, *, k: int = 12,
                     final_k: int = 5, reranker=None, tier: str = "MAIN",
                     strictness: str = "default") -> Answer:
+    """TODO: retrieve -> (rerank) -> generate -> validate -> maybe repair.
+    
+        B3: decide what happens when validation fails. Whatever you decide, the
+        function must never return an Answer with citations_valid=False and
+        refused=False. That combination is the thing you are being paid to prevent.
+    """
     """Retrieve -> (rerank) -> generate -> validate -> maybe repair."""
     with tracing.trace("rag.answer_question", k=k, final_k=final_k,
                        strictness=strictness, question=question[:120]) as span:
@@ -264,7 +275,7 @@ def answer_question(question: str, retriever: Retriever, *, k: int = 12,
 
 def answer_with_gold_context(question: str, gold_docs: list[str], *,
                              tier: str = "MAIN", strictness: str = "default") -> Answer:
-    """E2: same generator as answer_question, but the context is the gold
+    """TODO E2: same generator as answer_question, but the context is the gold
     documents (chunked with the same Lab 3 winner config, markdown-400).
     No retrieval at all. The difference between the two calls is exactly the
     damage the retriever is doing.
