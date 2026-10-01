@@ -36,7 +36,7 @@ behind an allowlist, argument validation, and human confirmation.
 | faithfulness | **0.911** | ≥ 0.90 | pass |
 | citation validity | **1.000** | ≥ 0.98 | pass |
 | refusal recall | **1.000** | ≥ 0.80 | pass |
-| refusal precision | **1.000** | ≥ 0.75 | pass |
+| refusal precision | **0.833** (5/6) | ≥ 0.75 | pass |
 | hit rate @ 5 (retrieval only) | **1.000** | ≥ 0.85 | pass |
 | cost per query | **$0.00047** | ≤ $0.01 | pass |
 | p95 latency (uncached) | **3651 ms** | ≤ 6000 ms | pass |
@@ -46,6 +46,17 @@ behind an allowlist, argument validation, and human confirmation.
 Citation validity of 1.000 is the load-bearing number: it means the system never
 returned a confident answer with a citation pointing at nothing. That invariant
 is enforced in code, not requested in a prompt.
+
+**The refusal figures are one run, not a stable measurement.** Refusal precision
+is 0.833 (5/6 — Q23 is the single wrongful refusal) and recall is 1.000, but
+both rest on 5 unanswerable questions, and 3 independent online repeats of the
+identical shipped config put precision in [0.833, 0.833] and recall in
+[0.800, 1.000]. Treat any single-case difference here as noise.
+
+**These numbers are also not what Labs 4 and 5 measured.** Those labs ran
+`gemini-3.7-flash` (tier `MAIN`); the service ships `gemini-3.5-flash-lite`
+(tier `SMALL`). The table above is the shipping configuration. See
+`reports/lab7_tier2x2.json` for the full comparison.
 
 ---
 
@@ -70,13 +81,34 @@ combining a number from `claims-process.md` with a question from
 real answer is 30. Every one of the five injection defences held. The failure is
 not injection, it is arithmetic across sources.
 
-**Under-answering cost more than over-answering.** Lab 5 added a completeness
-rule after finding 9 of 12 failures were answers that were right about the
-headline and silent about the exception ("maternity not covered on Bronze" —
-never mentioning that Silver, Gold and Platinum *do* cover it). Correctness did
-not move: 1.500 → 1.500. Four questions improved and four previously-passing
-questions broke, including three new wrongful refusals. **Lab 5's conclusion,
-reproduced here, is that this fix does not ship.**
+**Under-answering was the biggest failure class — and Lab 5's fix for it does
+replicate, once measured on the model that actually ships.** Lab 5 added a
+completeness rule after finding 9 of 12 failures were answers that were right
+about the headline and silent about the exception ("maternity not covered on
+Bronze" — never mentioning that Silver, Gold and Platinum *do* cover it).
+
+Lab 5 measured this on `gemini-3.7-flash` and concluded the fix did not ship:
+correctness was flat at 1.500 → 1.500, faithfulness −0.044, and refusal
+precision fell 0.571 → 0.429. **That conclusion does not hold at tier `SMALL`,
+which is what the service runs.** Re-running the same 2×2 on the shipping model,
+3 independent repeats per cell (`reports/lab7_tier2x2.json`):
+
+| | `lenient` (no rule 7) | `+ rule 7` (shipped) | Δ |
+|---|---|---|---|
+| correctness | 0.754 ± 0.026 | **0.783 ± 0.007** | **+0.029** |
+| refusal precision | 0.698 ± 0.028 | **0.833 ± 0.000** | **+0.135** |
+| refusal recall | 0.933 ± 0.116 | **1.000 ± 0.000** | **+0.067** |
+| faithfulness | **0.904 ± 0.034** | 0.882 ± 0.026 | −0.022 |
+
+So the rule *is* shipped, and on the shipping model it trades 0.022 of
+faithfulness for 0.029 correctness and 0.135 refusal precision. The single
+remaining cost is one deterministic wrongful refusal (Q17) that appears in
+every run at both tiers.
+
+**The general lesson is the one worth keeping:** a fix rejected on the wrong
+model is not a rejected fix. Lab 5's experiment was internally valid and its
+conclusion was still wrong, because "MAIN" and "SMALL" are different models and
+only one of them was ever going to be deployed.
 
 ---
 
@@ -175,15 +207,25 @@ TTFT ≈ query-embedding latency + first token, and the embedding is the larger
 term at ~1046 ms. Expected TTFT ~900–1200 ms, inside target. Cheap, low risk, no
 retrieval-quality change if the same embedding model family is kept.
 
-**3. Address the 8 generation failures with decomposition, not prompt words.**
-Expected value: medium. 5 of the 8 are multi-hop. Lab 5 established that
-prompt-level fixes move the number zero; splitting a multi-hop question into
+**3. Attack the 8 generation failures with decomposition, not prompt words.**
+Expected value: medium. Most are multi-hop. One prompt-level fix was tried
+(rule 7) and it did move the target metric on the shipping model, which
+weakens the "prompt words do nothing" claim — the honest version is that
+prompt words move correctness only at some tiers, so each one has to be
+measured on the deployed model. Splitting a multi-hop question into
 sub-questions and retrieving per hop is a structural change with a mechanism
-behind it.
+behind it, independent of which model is deployed.
 
-**Not doing:** relaxing the refusal threshold. It has already been relaxed once
-(Lab 5 measured −0.050 correctness and a fall in refusal precision when it was),
-refusal precision is currently 1.000, and there is nothing to buy.
+**4. Fix Q23 and Q17, the two questions the system gets wrong consistently.**
+Expected value: medium, cost low. Both are deterministic, not variance: Q23 is
+refused when it should be answered and Q17 is refused in every run. They are
+worth reading by hand before anything else, because two known-bad answers are a
+better use of an afternoon than any of the above.
+
+**Not doing:** relaxing the refusal threshold. It was relaxed once and, on the
+shipping model, that relaxation *raised* refusal precision (0.698 → 0.833) and
+recall (0.933 → 1.000). Current precision is 0.833, comfortably above the 0.75
+gate, and the one remaining cost is a single question. There is nothing to buy.
 
 ---
 

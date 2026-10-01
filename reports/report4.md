@@ -44,7 +44,23 @@ Everything below is measurable, not a vibe. The shipped pipeline is
   only), so the mitigation is (a) the different model, (b) the two rubrics
   being single-criterion and heavily deterministic, and (c) κ calibration below.
 
-## Results on the shipped (lenient) config — 45 questions, $0.43
+## Results on the `lenient` config — 45 questions, $0.43
+
+> **Correction, added after Lab 7.** This section originally called `lenient`
+> "the shipped config". It is not what ships. The service runs
+> `lenient_complete` (Lab 5's rule 7 appended) at tier `SMALL`
+> (`gemini-3.5-flash-lite`); this run used plain `lenient` at tier `MAIN`
+> (`gemini-3.7-flash`), the `rag.py` default. Two variables differ, so these
+> numbers describe a configuration that is no longer in production.
+>
+> The strictness *decision* below still holds — and the Lab 7 re-measurement
+> strengthens it. On the tier that actually ships, `lenient_complete` beats
+> `lenient` on correctness (+0.029), refusal precision (+0.135) and recall
+> (+0.067), costing 0.022 of faithfulness. See `EVALUATION_REPORT.md` §3 and
+> `reports/lab7_tier2x2.json`.
+>
+> The authoritative figures for what ships are in `EVALUATION_REPORT.md` §2
+> and `reports/gate_metrics.json`.
 
 | metric | target | shipped | status |
 |---|---|---|---|
@@ -95,7 +111,7 @@ correct.
 |---|---|---|---|---|---|
 | **strict** (refuse on any doubt) | 0.455 | 1.000 | 6 (Q20 Q23 Q25 Q28 Q41 Q43) | 0.688 | 1.000 |
 | **default** (middle) | 0.500 | 1.000 | 5 (Q19 Q22 Q23 Q28 Q41) | 0.700 | 0.956 |
-| **lenient** (deployed) | **0.571** | 0.800 | **3** (Q20 Q41 Q43) | **0.750** | 0.956 |
+| **lenient** (chosen; was "deployed") | **0.571** | 0.800 | **3** (Q20 Q41 Q43) | **0.750** | 0.956 |
 
 **Decision: lenient, and it isn't close.** Aurora is an insurance helpdesk:
 a refusal costs a customer a call; a wrong answer costs a claim. Strict and

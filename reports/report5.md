@@ -241,6 +241,28 @@ Refusal behaviour must be re-measured, not assumed.
 **Do not ship this.** Correctness is flat, three metrics regressed, and the
 target metric did not move at all.
 
+> **Superseded by Lab 7 — read this before acting on the verdict above.**
+> This experiment ran at tier `MAIN` (`gemini-3.7-flash`). The deployed service
+> runs tier `SMALL` (`gemini-3.5-flash-lite`), and `lenient_complete` **is**
+> what ships (`service.py:53`). Re-measuring the same 2×2 on the shipping model,
+> 3 independent repeats per cell, reverses the conclusion:
+>
+> | | `lenient` | `+ rule 7` (shipped) | Δ |
+> |---|---|---|---|
+> | correctness | 0.754 ± 0.026 | **0.783 ± 0.007** | **+0.029** |
+> | refusal precision | 0.698 ± 0.028 | **0.833 ± 0.000** | **+0.135** |
+> | refusal recall | 0.933 ± 0.116 | **1.000 ± 0.000** | **+0.067** |
+> | faithfulness | **0.904 ± 0.034** | 0.882 ± 0.026 | −0.022 |
+>
+> The verdict below was correct *for the model it was run on* and wrong for the
+> model that ships. Rule 7 costs 0.022 faithfulness and buys 0.029 correctness,
+> 0.135 precision and 0.067 recall. Evidence:
+> `reports/lab7_tier2x2.json`, summarised in `EVALUATION_REPORT.md` §3.
+>
+> The durable lesson is the failure of method, not of the fix: the experiment
+> had one unexamined variable. "Rule 7 vs no rule 7" was never the only thing
+> that changed between the two runs that were compared to production.
+
 But the diagnosis was sound — Q03 and Q41/Q43 recovered *exactly* as Part A
 predicted, which is evidence the classifier is right. The failure was in the
 fix's blast radius, not its target. Rule 7's second half is the problem:

@@ -64,6 +64,37 @@ class GateDataError(RuntimeError):
     """
 
 
+def refusal_metrics(rows: list[tuple[str, bool]], una_ids: set[str]) -> dict:
+    """Refusal recall and precision from (id, refused) pairs.
+
+    Extracted from `measure()` so the formula is unit-testable without an API
+    key -- see tests/test_gate_refusals.py. That test exists because the
+    original inline version was a tautology: it averaged a list already
+    filtered down to refusals, so every element was True and the value was
+    1.0 for ANY behaviour, including a system that refuses every answerable
+    question. It passed its own 0.75 threshold. A gate metric that cannot fail
+    is worse than no metric, because it reads as coverage.
+
+    recall    = of the unanswerable questions, the share that were refused
+    precision = of everything refused, the share that SHOULD have been refused
+    """
+    unanswerable = [v for i, v in rows if i in una_ids]
+    refused_ids = [i for i, v in rows if v]
+    true_pos = [i for i in refused_ids if i in una_ids]
+
+    def mean(xs: list[float], default: float = 0.0) -> float:
+        return statistics.fmean(xs) if xs else default
+
+    return {
+        "refusal_recall": round(mean([1.0 if v else 0.0 for v in unanswerable]), 4),
+        "refusal_precision": round(
+            len(true_pos) / len(refused_ids) if refused_ids else 0.0, 4),
+        "_n_refusals": len(refused_ids),
+        "_n_rightful_refusals": len(true_pos),
+        "_wrongful_refusals": [i for i in refused_ids if i not in una_ids],
+    }
+
+
 def measure() -> dict[str, float]:
     """TODO D1: run your golden set and return the metric dict.
 
@@ -163,9 +194,9 @@ def measure() -> dict[str, float]:
         got = {h.chunk.doc_id for h in r.search(q["question"], k=HIT_K)}
         hits_at_k.append(bool(got & set(q["relevant_docs"])))
 
-    refused = [(q["id"], a.refused) for q, a in rows]
-    unanswerable = [v for i, v in refused if i in una_ids]
-    all_refusals = [v for _, v in refused if v]
+    # Refusal metrics. See refusal_metrics() for why the precision formula is
+    # not a mean over a pre-filtered list of booleans.
+    refus = refusal_metrics([(q["id"], a.refused) for q, a in rows], una_ids)
 
     def mean(xs: list[float], default: float = 0.0) -> float:
         return statistics.fmean(xs) if xs else default
@@ -177,9 +208,8 @@ def measure() -> dict[str, float]:
         "faithfulness": round(mean(faithfulness), 4),
         "citation_validity": round(
             mean([1.0 if a.citations_valid else 0.0 for _, a in rows]), 4),
-        "refusal_recall": round(mean([1.0 if v else 0.0 for v in unanswerable]), 4),
-        "refusal_precision": round(
-            mean([1.0 if v else 0.0 for v in all_refusals]), 4),
+        "refusal_recall": refus["refusal_recall"],
+        "refusal_precision": refus["refusal_precision"],
         "hit_rate_at_5": round(mean([1.0 if v else 0.0 for v in hits_at_k]), 4),
         # Cost under AIP_OFFLINE=1 is legitimately 0 -- nothing left the
         # machine. The deployed figure comes from an online run.
@@ -190,7 +220,9 @@ def measure() -> dict[str, float]:
         # evaluation report can quote them without re-running anything.
         "_n_questions": len(questions),
         "_n_answerable": len(ans),
-        "_n_refusals": len(all_refusals),
+        "_n_refusals": refus["_n_refusals"],
+        "_n_rightful_refusals": refus["_n_rightful_refusals"],
+        "_wrongful_refusals": refus["_wrongful_refusals"],
         "_n_judged_correctness": len(correctness),
         "_n_cache_misses": len(cache_misses),
         "_cache_miss_ids": cache_misses[:20],
