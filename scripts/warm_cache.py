@@ -144,14 +144,33 @@ def verify() -> int:
 
     if settings.offline:
         from labs.lab4.rag import answer_question
+
+        # The SHIPPING configuration, imported rather than re-declared, for the
+        # same reason gate.py imports it: a verification that exercises a
+        # different pipeline than the one in production is worse than none,
+        # because it is green and wrong.
+        #
+        # This used to call answer_question() with no tier, which defaults to
+        # MAIN (gemini-3.7-flash) while the service ships SMALL
+        # (gemini-3.5-flash-lite). Different model, different content hash,
+        # different cache key -- so verify() was asserting that the cache holds
+        # a response for a configuration nothing ships. It passed only because
+        # the cache had accumulated MAIN-tier rows from earlier experiments, and
+        # it failed the moment prune_cache.py kept just the keys replay needs.
+        # The failure was in the check, not in the cache.
+        from labs.lab7.service import FINAL_K, GENERATION_TIER, RETRIEVE_K, STRICTNESS_NAME
+
         try:
             t0 = time.perf_counter()
-            a = answer_question(gq["Q01"]["question"], r, k=16, final_k=8,
-                                strictness="lenient_complete")
+            a = answer_question(gq["Q01"]["question"], r, k=RETRIEVE_K,
+                                final_k=FINAL_K, strictness=STRICTNESS_NAME,
+                                tier=GENERATION_TIER)
             print(f"  generation replay OK ({time.perf_counter() - t0:.2f}s) "
-                  f"refused={a.refused}")
+                  f"refused={a.refused}  tier={GENERATION_TIER}")
         except cache.CacheMiss as exc:
             print(f"  generation CacheMiss: {str(exc)[:140]}")
+            print(f"  (tier={GENERATION_TIER}, strictness={STRICTNESS_NAME}, "
+                  f"final_k={FINAL_K})")
             print("  -> run: python scripts/warm_cache.py   (while online)")
             ok = False
 
