@@ -3,7 +3,7 @@ __pycache__
 .aip_traces/
 .pytest_cache/
 
-# Lab 7 DELIBERATE EXCEPTIONS to the defaults above.
+# Lab 7 DELIBERATE EXCEPTION to the defaults above.
 #
 # .github/ is ordinarily ignored, but the CI regression gate lives there:
 # .github/workflows/eval.yml IS the pipeline. Untracked, the gate never runs at
@@ -14,7 +14,11 @@ __pycache__
 # negations used to sit at the top of the file, above the `.aip_cache` rules at
 # the bottom -- and `git ls-files .github` came back empty because of it. Keep
 # every `!` below the rule it negates.
-!.aip_cache/
+!
+# Note what is NOT here any more: `!.aip_cache/`. It was a no-op, and a
+# misleading one -- it read like the cache was about to be committed when it
+# never was. See the bottom of this file for why nothing under .aip_cache/ is
+# tracked any more, and where the committed cache lives instead.
 !.github/
 !.github/workflows/
 !.github/workflows/eval.yml
@@ -25,21 +29,35 @@ corpus_scaled
 ans
 zip/*
 
-# The response cache is scratch, not a deliverable. scripts/warm_cache.py
-# rebuilds it and scripts/prune_cache.py cuts it to the keys offline replay
-# reads, but neither belongs in git: the un-pruned calls.sqlite3 is 144 MB and
-# GitHub rejects any blob over 100 MB, which is what broke the push.
-# .aip_cache/chroma/ is the vector index duplicating data/index/ at 100x the
-# size. No sqlite3 under here is tracked.
+# THE RESPONSE CACHE. Two files, two jobs, and only one of them is in git.
 #
-# Consequence worth knowing: labs/lab7/gate.py replays this cache under
-# AIP_OFFLINE=1 and raises CacheMiss when it is absent, so the gate only passes
-# where warm_cache.py has been run. reports/gate_metrics.json keeps the
-# committed numbers.
-.aip_cache/chroma/*
-.aip_cache/*.sqlite3
+#   .aip_cache/calls.sqlite3    scratch. Every call writes here. 144 MB after an
+#                               online warm, because it keeps every corpus
+#                               embedding. Never tracked: GitHub rejects any
+#                               blob over 100 MB, and trying to commit it is
+#                               what broke an earlier push.
+#   data/replay/calls.sqlite3   THE REPLAY SET. ~1.3 MB, holding only the keys
+#                               offline replay reads (the 45 golden answers,
+#                               the Lab 4 judge calls, and the 45 query
+#                               vectors). COMMITTED. Rebuilt by
+#                               scripts/prune_cache.py.
+#
+# They are on separate paths so that the 144 MB file cannot be staged by
+# accident: the committed one is not under .aip_cache/, so no ignore rule here
+# can reach it and no ordering of negations can quietly untrack it. That is the
+# whole reason they are not one file -- a single path that was both the
+# gitignored scratch and the committed replay set meant any online warm turned
+# the tracked file into 144 MB.
+#
+# tests/test_cache_tracked.py fails the build if the replay set stops being
+# tracked or grows past a few MB, because this has now regressed twice.
+.aip_cache/
 
 # Machine-specific wall clock from the gate. Deliberately untracked: replaying
 # the golden set measures this machine's Python, not the system, and it moves
 # every run. reports/gate_metrics.json keeps the reproducible metrics only.
 reports/gate_timing.local.json
+
+# Mid-prune scratch file from scripts/prune_cache.py, in case a run is
+# interrupted between the VACUUM and the os.replace.
+data/replay/*.pruning

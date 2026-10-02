@@ -26,9 +26,16 @@ re-embedding, and CI needs no network and no embedding provider at all.
 WHAT CI ACTUALLY NEEDS
 ----------------------
 1. `data/index/` -- the corpus embeddings. ~3 MB, committed.
-2. chat responses for the golden set under the SHIPPING prompt only. One config,
-   45 questions. `labs/lab7/gate.py` replays these; a different prompt is a
-   CacheMiss by design, because a different prompt is a different experiment.
+2. `data/replay/calls.sqlite3` -- chat responses for the golden set under the
+   SHIPPING prompt only. One config, 45 questions, ~1.3 MB, committed, and
+   written by scripts/prune_cache.py rather than by this script.
+   `labs/lab7/gate.py` replays these; a different prompt is a CacheMiss by
+   design, because a different prompt is a different experiment.
+
+Note that (2) is not this script's output on purpose: what this script warms is
+the scratch cache under `.aip_cache/`, which reaches 144 MB and is never
+committed. `python scripts/prune_cache.py --prune` is the step that cuts the
+replay set out of it.
 """
 from __future__ import annotations
 
@@ -126,6 +133,19 @@ def verify() -> int:
     if not settings.offline:
         print("  run with AIP_OFFLINE=1 to actually verify")
 
+    # Say which of the two caches is going to answer, because "offline replay
+    # works" means something different depending on whether the committed
+    # replay set is present. A pass backed only by a local scratch cache is a
+    # pass that no grader and no CI runner would get.
+    from aip import cache as _cache
+
+    src = Path(settings.cache_dir) / "calls.sqlite3"
+    replay = _cache._REPLAY_DB_PATH
+    print(f"  scratch cache  {src}   "
+          f"{'present' if src.exists() else 'ABSENT (a fresh clone looks like this)'}")
+    print(f"  replay set     {replay}   "
+          f"{'present' if replay.exists() else 'ABSENT -- nothing committed to replay'}")
+
     ok = True
     try:
         r = load_index(model=resolve_model("EMBED"))
@@ -215,8 +235,8 @@ def main() -> int:
     else:
         print("\n2. SKIPPED warm step (--no-warm)")
 
-    print("\ncommit both data/index/ and .aip_cache/calls.sqlite3")
-    print("the CI gate replays the chat cache; the service loads data/index/")
+    print("\ncommit data/index/ (the corpus vectors) and data/replay/calls.sqlite3")
+    print("(the offline replay set); .aip_cache/ stays ignored -- it is scratch.")
     return 0
 
 

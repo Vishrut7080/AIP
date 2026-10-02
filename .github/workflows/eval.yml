@@ -3,10 +3,14 @@ name: eval-gate
 # Lint, unit tests, then the golden-set regression gate -- on every push.
 #
 # AIP_OFFLINE=1 means the gate replays the committed response cache: no API key,
-# no cost, and deterministic results. That depends on .aip_cache/calls.sqlite3
+# no cost, and deterministic results. That depends on data/replay/calls.sqlite3
 # being tracked (scripts/prune_cache.py keeps it to ~1.3 MB) -- without it every
 # request is a CacheMiss and the gate reports zero quality for a reason that has
 # nothing to do with the code.
+#
+# The local .aip_cache/ is scratch and is NOT tracked: it reaches 144 MB after an
+# online warm, and GitHub rejects blobs over 100 MB. The replay set is a separate,
+# pruned file at data/replay/ precisely so the two cannot be confused.
 #
 # The order matters. Lint and tests are cheap and specific, so they run first and
 # a red build points at the actual mistake. The gate is last because it is the

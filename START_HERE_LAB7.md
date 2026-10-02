@@ -96,8 +96,12 @@ TODO A3. An outage is a **503 with `Retry-After`**; budget exhaustion is a
 **429**; a malformed request is a **422**. Test all three with `curl`.
 
 ### CI fails with a missing API key
-The workflow runs `AIP_OFFLINE=1` against your **committed cache**. If you have
-not committed `.aip_cache/`, there is nothing to replay.
+The workflow runs `AIP_OFFLINE=1` against the committed **replay set**,
+`data/replay/calls.sqlite3`. If you have not committed that file, there is
+nothing to replay — and the symptom is a 503 that looks like a service bug.
+Rebuild it with `python scripts/prune_cache.py --prune` and commit the result.
+Never commit `.aip_cache/`: that is the 144 MB scratch cache, and GitHub rejects
+blobs over 100 MB.
 
 ### The regression gate passes after I deliberately broke something
 Your thresholds are too loose. That is exactly what D3 is for — a gate you have

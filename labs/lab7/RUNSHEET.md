@@ -145,7 +145,11 @@ breach of `thresholds.yml`.
 
 **4.2 — `D2`.** Wire it into GitHub Actions — `.github/workflows/eval.yml` is
 provided. It runs with `AIP_OFFLINE=1` against your committed cache, so **CI
-needs no API key and costs nothing.** Commit the cache.
+needs no API key and costs nothing.** Commit the cache — specifically
+`data/replay/calls.sqlite3`, the ~1.3 MB replay set that
+`python scripts/prune_cache.py --prune` cuts out of your local `.aip_cache/`.
+Never commit `.aip_cache/` itself: it is 144 MB after an online warm and GitHub
+rejects blobs over 100 MB.
 
 **4.3 — `D3`. Prove it works. Deliberately break something** — drop `final_k`
 to 1, or delete a corpus document — push, and **show the red build.**

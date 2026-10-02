@@ -17,8 +17,11 @@ python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # Window
 AIP_OFFLINE=1 .venv/Scripts/python -m uvicorn labs.lab7.service:app --port 8000
 ```
 
-The corpus index (`data/index/`, 2.9 MB) and the response cache
-(`.aip_cache/`) are committed, so the service starts with no network at all.
+The corpus index (`data/index/`, 2.9 MB) and the offline replay set
+(`data/replay/calls.sqlite3`, 1.3 MB) are committed, so the service starts with
+no network at all. The replay set is the pruned subset of the local cache that
+offline replay reads — `scripts/prune_cache.py` rebuilds it from an online warm.
+Your own `.aip_cache/` is scratch: never committed, and 144 MB after a warm.
 
 Then:
 
