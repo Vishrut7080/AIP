@@ -1,8 +1,16 @@
 name: eval-gate
 
-# Runs the golden-set regression gate on every push.
-# AIP_OFFLINE=1 means it replays the committed response cache: no API key,
-# no cost, and deterministic results. Commit .aip_cache/calls.sqlite3.
+# Lint, unit tests, then the golden-set regression gate -- on every push.
+#
+# AIP_OFFLINE=1 means the gate replays the committed response cache: no API key,
+# no cost, and deterministic results. That depends on .aip_cache/calls.sqlite3
+# being tracked (scripts/prune_cache.py keeps it to ~1.3 MB) -- without it every
+# request is a CacheMiss and the gate reports zero quality for a reason that has
+# nothing to do with the code.
+#
+# The order matters. Lint and tests are cheap and specific, so they run first and
+# a red build points at the actual mistake. The gate is last because it is the
+# slow one and the one whose failure needs interpreting.
 
 on: [push, pull_request]
 
@@ -16,6 +24,10 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements.txt
+      - name: Lint
+        run: ruff check aip/ labs/ scripts/ tests/
+      - name: Unit tests
+        run: pytest tests/ -q
       - name: Regression gate
         env:
           AIP_OFFLINE: "1"
