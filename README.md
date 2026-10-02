@@ -11,7 +11,7 @@
 Lab 7's deliverable. On a clean machine, with no API key:
 
 ```bash
-git clone <this repo> && cd AI-in-Practice-Lab1
+git clone <this repo> && cd AIP
 python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # Windows
 # source .venv/bin/activate && pip install -r requirements.txt           # macOS/Linux
 AIP_OFFLINE=1 .venv/Scripts/python -m uvicorn labs.lab7.service:app --port 8000
