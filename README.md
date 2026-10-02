@@ -29,11 +29,13 @@ curl localhost:8000/health
 ```
 
 No API key is needed to inspect the service, and to replay the 45 golden test
-questions:
+questions. **The question must be one of them, verbatim** — the cache is keyed on
+a hash of the exact string, so a paraphrase is a different question as far as
+replay is concerned:
 
 ```bash
-AIP_OFFLINE=1 curl -s localhost:8000/ask -H 'content-type: application/json' \
-  -d '{"question":"How long do I have to submit a reimbursement claim after discharge?"}'
+curl -s localhost:8000/ask -H 'content-type: application/json' \
+  -d '{"question":"How many days do I have to submit a reimbursement claim after discharge?"}'
 ```
 
 > **Offline replay covers the golden set, not arbitrary questions.** The
@@ -42,6 +44,8 @@ AIP_OFFLINE=1 curl -s localhost:8000/ask -H 'content-type: application/json' \
 > **503 with `Retry-After`** — correctly, because the request is fine and the
 > service cannot serve it. For real answers, put a key in `.env` and drop
 > `AIP_OFFLINE=1`.
+>
+> To see the full set, `python -c "from labs.lab3.search import load_questions; print('\n'.join(q['question'] for q in load_questions(include_unanswerable=True)))"`.
 
 **Optional UI** (needs the service running; live answers need an API key):
 
@@ -56,6 +60,10 @@ streamlit run labs/lab7/dashboard.py  # latency, cost, refusal alert
 AIP_OFFLINE=1 python labs/lab7/gate.py
 # correctness 0.7750 >= 0.75  ok ...  GATE PASSED
 ```
+
+A gate you have not seen fail is a gate you do not have — the D3 evidence, with
+both runs and their exit codes, is in
+[`reports/d3_gate_failure.txt`](reports/d3_gate_failure.txt).
 
 Full numbers, including what the system is *not* safe for:
 [`EVALUATION_REPORT.md`](EVALUATION_REPORT.md).

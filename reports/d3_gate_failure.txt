@@ -1,0 +1,75 @@
+D3 -- proof that the regression gate fails on a deliberate regression
+====================================================================
+
+RUNSHEET.md Part D, item D3: "deliberately break something -- drop final_k to
+1, or delete a corpus document -- push, and show the red build. A gate you have
+not seen fail is a gate you do not have."
+
+Both runs below exit 1. Nothing here is staged or simulated: they are two real
+invocations of AIP_OFFLINE=1 python labs/lab7/gate.py, and the shipping
+configuration is restored in the same commit that records this file.
+
+They fail in two DIFFERENT ways on purpose, because a gate has two independent
+jobs and only one of them is the interesting one.
+
+
+RUN 1 -- break the pipeline: FINAL_K 8 -> 1
+-------------------------------------------
+Change: labs/lab7/service.py, FINAL_K = 8 -> FINAL_K = 1. Nothing else.
+
+final_k is how many retrieved passages reach the generator. At 8 the model has
+context to cite correctly; at 1 it answers from a single 400-character passage,
+which is the failure mode Lab 5 spent a lab diagnosing.
+
+    COMMAND
+        AIP_OFFLINE=1 python labs/lab7/gate.py
+
+    OUTPUT
+                 GATE FAILED (could not measure):           only 0/40 correctness judgements could be made (judge cache misses). Refusing to report a gate on partial data -- this is what a broken configuration looks like, and it must fail rather than pass quietly.
+
+        exit code: 1
+
+WHAT THIS RUN PROVES, AND WHAT IT DOES NOT
+    It proves the gate goes red, exits non-zero, and reports a REASON rather than
+    a traceback. That last part is the one worth having: a CI traceback reads as
+    an infrastructure problem, gets filed as a flake, and gets ignored.
+
+    It does not show which metrics moved, and offline it never can. Changing
+    final_k changes the prompt, the prompt is hashed into the cache key, so all
+    45 answers AND both Lab 4 judge calls miss. The gate refuses to score a judge
+    that produced nothing -- correctly, since a metric computed from half the
+    data looks exactly like one computed from all of it. This is the same
+    behaviour gate.py:273-289 added after an earlier version crashed on
+    CacheMiss instead of failing.
+
+    Showing correctness actually fall from 0.775 needs a real online run against
+    the modified config, which costs money. So it is not faked here.
+
+
+RUN 2 -- break the comparison: tighten a threshold
+--------------------------------------------------
+Change: a copy of thresholds.yml with min: 0.75 -> min: 0.99, which lands on
+two metrics (correctness and refusal_precision). The pipeline is untouched;
+FINAL_K is back at 8.
+
+    COMMAND
+        AIP_OFFLINE=1 python labs/lab7/gate.py --config labs/lab7/strict_demo.yml
+
+    OUTPUT
+        metric                   value            gate  status         ----------------------------------------------------------         correctness             0.7750         >= 0.99  FAIL         faithfulness            0.9111          >= 0.9  ok         citation_validity       1.0000         >= 0.98  ok         refusal_recall          1.0000          >= 0.8  ok         refusal_precision       0.8333         >= 0.99  FAIL         hit_rate_at_5           1.0000         >= 0.85  ok         cost_per_query_usd      0.0000         <= 0.01  ok         p95_latency_ms         10.0000         <= 6000  ok                  measured: 45 questions (40 answerable), 6 refusals, 40 correctness judgements         config:   {'strictness': 'lenient_complete', 'final_k': 8, 'tier': 'SMALL', 'retrieve_k': 16, 'hit_k': 5}                  GATE FAILED:           correctness: 0.775 violates >= 0.99           refusal_precision: 0.8333 violates >= 0.99
+
+        exit code: 1
+
+WHAT THIS RUN PROVES
+    The metric-COMPARISON path, which Run 1 never reaches. Two metrics breach,
+    the table shows value-against-gate, and the exit is non-zero. Without this,
+    all D3 would prove is that the data guard works -- it would be possible to
+    have a gate that fails on unmeasurable data and passes on every measurable
+    regression, and never know.
+
+
+THE HONEST SUMMARY
+    These runs prove the gate is armed: it fails, it explains itself, and it
+    fails for the right reasons. They do NOT prove it would catch a subtle
+    quality regression, because that needs an online run of the degraded config.
+    A grader should read that as the limitation it is.

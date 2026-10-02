@@ -64,6 +64,27 @@ class GateDataError(RuntimeError):
     """
 
 
+# Wall-clock fields, split out of the committed artefact.
+#
+# Everything else in the metric dict is deterministic under AIP_OFFLINE=1 -- same
+# cache, same machine-independent arithmetic, same answer every run. Wall clock
+# is not: replaying 45 questions measures this machine's Python, and it came out
+# at 6.7, 6.9 and 7.2 ms on three consecutive runs. Committing a number that
+# moves on every push trains you to ignore diffs in the file that actually
+# matter, which is the opposite of what a regression artefact is for.
+#
+# So the fine-grained timings go to a gitignored sidecar, and the one wall-clock
+# figure that IS gated -- p95 -- stays but is bucketed to 10 ms. The threshold is
+# 6000 ms, so a 10 ms bucket is 0.17% of it: it cannot hide a regression by any
+# margin worth gating on, and it makes the committed number stable.
+_TIMING_FIELDS = ("_p50_wallclock_ms", "_p95_wallclock_ms",
+                  "_p99_wallclock_ms", "_latency_caveat")
+
+
+def _round_to(x: float, step: int) -> float:
+    return float(int(round(x / step)) * step)
+
+
 def refusal_metrics(rows: list[tuple[str, bool]], una_ids: set[str]) -> dict:
     """Refusal recall and precision from (id, refused) pairs.
 
@@ -215,7 +236,7 @@ def measure() -> dict[str, float]:
         # machine. The deployed figure comes from an online run.
         "cost_per_query_usd": round(cost_per_query, 6),
         # Wall clock, not Budget.percentile(95), which is 0 under replay.
-        "p95_latency_ms": round(wall_p(95), 1),
+        "p95_latency_ms": _round_to(wall_p(95), 10),
         # Extras. Not gated, but written to reports/gate_metrics.json so the
         # evaluation report can quote them without re-running anything.
         "_n_questions": len(questions),
@@ -249,6 +270,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="labs/lab7/thresholds.yml")
     ap.add_argument("--save", default="reports/gate_metrics.json")
+    ap.add_argument("--save-timing", default="reports/gate_timing.local.json",
+                    help="where to write machine-specific wall clock (gitignored)")
     args = ap.parse_args()
 
     thresholds = yaml.safe_load((ROOT / args.config).read_text(encoding="utf-8"))
@@ -296,7 +319,21 @@ def main() -> int:
     if args.save:
         p = ROOT / args.save
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+        # The committed artefact holds only what is reproducible. Stripping the
+        # wall-clock fields here rather than in measure() keeps them available to
+        # this process -- the printed table still shows a real p95.
+        p.write_text(json.dumps(
+            {k: v for k, v in metrics.items() if k not in _TIMING_FIELDS},
+            indent=2), encoding="utf-8")
+
+    if args.save_timing:
+        # Machine-specific, deliberately untracked. EVALUATION_REPORT.md quotes
+        # the deployed p95 from an online run, not from here.
+        t = ROOT / args.save_timing
+        t.parent.mkdir(parents=True, exist_ok=True)
+        t.write_text(json.dumps(
+            {k: metrics[k] for k in _TIMING_FIELDS if k in metrics}, indent=2),
+            encoding="utf-8")
 
     if failures:
         print("\nGATE FAILED:")
