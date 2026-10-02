@@ -40,8 +40,6 @@ zip/*
 .aip_cache/chroma/*
 .aip_cache/*.sqlite3
 
-!.aip_cache/calls.sqlite3
-
 # Machine-specific wall clock from the gate. Deliberately untracked: replaying
 # the golden set measures this machine's Python, not the system, and it moves
 # every run. reports/gate_metrics.json keeps the reproducible metrics only.
