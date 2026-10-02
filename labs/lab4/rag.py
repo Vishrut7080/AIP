@@ -41,9 +41,43 @@ REFUSAL = "I don't have enough information in the provided sources to answer tha
 # Plus one rule the shipped corpus actually needs: a PARTIAL refusal. Q37 and
 # Q40 are only part-way unanswerable -- the grounded part must be answered with
 # a citation, and only the unsupported remainder refuses (T4 §6.3).
-def _system_common(rules: list[str]) -> str:
-    """Assemble ANSWER_SYSTEM from the shared non-refusal rules + untrusted clause."""
+# Rule 7, the Lab 5 Part C fix. Appended verbatim to the deployed `lenient`
+# prompt so that it is the ONLY difference between v1 and v2.
+#
+# Why this rule rather than a looser length rule: 9 of the 12 mode-6 failures in
+# Lab 5 are PARTIAL CREDIT, not wrong answers. Q03 answers "no, maternity is not
+# covered on Bronze" and never says Silver/Gold/Platinum do cover it; Q05 gives
+# "30 days" and omits the 15-day instalment variant. Rule 6's brevity is what
+# the model reaches for when it has something true but partial to say, so the
+# fix names the missing clause rather than removing the length discipline.
+#
+# This does NOT relax the refusal threshold in rules 1/2. That dial is untouched
+# on purpose: reports/report5.md (Part B) records that relaxing it a second time
+# is the change most likely to reproduce the reference solution's published
+# -0.050 correctness.
+COMPLETENESS_RULE = (
+    "\n7. If the sources state a second condition, limit, exception or variant "
+    "that changes the answer -- a different plan, tier, term, or instalment case "
+    "-- state it explicitly. Answering the general case alone is an incomplete "
+    "answer, not a correct one. Do not pad with anything the sources do not say.\n"
+)
+
+
+def _system_common(rules: list[str], *, complete: bool = False) -> str:
+    """Assemble ANSWER_SYSTEM from the shared non-refusal rules + untrusted clause.
+
+    `complete=True` adds COMPLETENESS_RULE. Prefer building the v2 prompt by
+    appending to the shipped string (see STRICTNESS) rather than re-listing the
+    rules here: re-typing them silently changed whitespace inside the refusal
+    text, which turns a one-variable measurement into a two-variable one.
+    """
     body = "\n".join(rules)
+    completeness = (
+        "\n7. If the sources state a second condition, limit, exception or "
+        "variant that changes the answer -- a different plan, tier, term, or "
+        "instalment case -- state it explicitly. Answering the general case "
+        "alone is an incomplete answer, not a correct one. Do not pad with "
+        "anything the sources do not say." if complete else "")
     return f"""\
 You answer questions using ONLY the numbered sources provided.
 
@@ -51,6 +85,7 @@ Rules, in priority order:
 {body}
 5. If sources disagree, say so and cite both. Do not pick one silently.
 6. Be concise. Two or three sentences unless the question needs more.
+{completeness}
 
 {UNTRUSTED_SYSTEM_CLAUSE}
 """
@@ -108,6 +143,13 @@ STRICTNESS = {
     "default": ANSWER_SYSTEM,
     "lenient": ANSWER_SYSTEM_LENIENT,
     "strict": ANSWER_SYSTEM_STRICT,
+    # Lab 5 Part C: the v1 (deployed) configuration plus the completeness rule.
+    #
+    # Built by APPENDING to the shipped lenient string rather than re-listing
+    # the rules, so rules 1-6 are byte-identical to v1 and rule 7 is the only
+    # difference. Re-typing the rules introduced whitespace-only changes inside
+    # the refusal text, which would have meant measuring two variables.
+    "lenient_complete": ANSWER_SYSTEM_LENIENT + COMPLETENESS_RULE,
 }
 
 

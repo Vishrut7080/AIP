@@ -14,16 +14,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from labs.lab1.extract import (  # noqa: E402
-    SYSTEM_PROMPT, apply_business_rules, extract_deterministic,TicketRecordC, CATEGORIES
-)
-
-from pydantic import Field, BaseModel
-
-from aip.llm import structured, StructuredOutputError
-from aip.cost import BudgetExceeded
-
 from typing import Literal
+
+from pydantic import BaseModel, Field
+
+from aip.cost import BudgetExceeded
+from aip.llm import StructuredOutputError, structured
+from labs.lab1.extract import (  # noqa: E402
+    CATEGORIES,
+    SYSTEM_PROMPT,
+    TicketRecordC,
+    apply_business_rules,
+    extract_deterministic,
+)
 
 # ---------------------------------------------------------------------------
 # A1 — your six chosen examples.
@@ -319,7 +322,7 @@ def cascade(ticket: str) -> dict:
         trigger = True     # If validation fails, trigger MAIN model
 
     # or if the evidence is empty or too short (less than 40 character)
-    if len(s1['evidence'].strip()) < 40:
+    if len(s1['evidence'].strip()) < 40:  # noqa: SIM114
          trigger = True
     # or If the two models disagree...
     elif (s1['category'] != s2['category']) or (s1['urgency'] != s2['urgency']) or (s1['sentiment'] != s2['sentiment']):

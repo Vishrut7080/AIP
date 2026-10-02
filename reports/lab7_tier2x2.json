@@ -1,0 +1,98 @@
+{
+  "_note": "Completes the 2x2 (tier x strictness) and measures RUN-TO-RUN VARIANCE of the refusal metrics on the identical shipped config. Lab 4/5 measured tier=MAIN (gemini-3.7-flash); the Lab 7 gate and service ship tier=SMALL (gemini-3.5-flash-lite), so the Lab 4 numbers were never measured on the shipping model. 3 independent online repeats per cell, retrieve_k=16 final_k=8. Faithfulness judged against retrieved context per labs/lab4/evaluate.py:180.",
+  "tier": "SMALL",
+  "model": "gemini/gemini-3.5-flash-lite",
+  "findings": {
+    "gate_reported_precision_1.0_but_online_repeats_never_exceed_0.833": "the gate replays a committed cache recorded from one lucky run; n=5 makes precision swing 0.14 per case",
+    "rule7_costs_one_wrongful_refusal_Q17": "deterministic across all 6 runs, not variance",
+    "rule7_does_not_regress_correctness_at_SMALL": "Lab 5's -0.000 verdict was measured at tier=MAIN and does not replicate at the shipping tier",
+    "lab4_lab5_numbers_describe_a_different_model": "tier MAIN vs shipped SMALL"
+  },
+  "cells": {
+    "lenient": {
+      "reps": [
+        {
+          "correctness": 0.725,
+          "faithfulness": 0.8667,
+          "refusal_recall": 0.8,
+          "refusal_precision": 0.6667,
+          "n_refusals": 6,
+          "tp": 4,
+          "wrongful": [
+            "Q17",
+            "Q23"
+          ],
+          "missed": [
+            "Q37"
+          ]
+        },
+        {
+          "correctness": 0.7625,
+          "faithfulness": 0.9111,
+          "refusal_recall": 1.0,
+          "refusal_precision": 0.7143,
+          "n_refusals": 7,
+          "tp": 5,
+          "wrongful": [
+            "Q23",
+            "Q25"
+          ],
+          "missed": []
+        },
+        {
+          "correctness": 0.775,
+          "faithfulness": 0.9333,
+          "refusal_recall": 1.0,
+          "refusal_precision": 0.7143,
+          "n_refusals": 7,
+          "tp": 5,
+          "wrongful": [
+            "Q17",
+            "Q23"
+          ],
+          "missed": []
+        }
+      ]
+    },
+    "lenient_complete": {
+      "reps": [
+        {
+          "correctness": 0.775,
+          "faithfulness": 0.9111,
+          "refusal_recall": 1.0,
+          "refusal_precision": 0.8333,
+          "n_refusals": 6,
+          "tp": 5,
+          "wrongful": [
+            "Q17"
+          ],
+          "missed": []
+        },
+        {
+          "correctness": 0.7875,
+          "faithfulness": 0.8667,
+          "refusal_recall": 1.0,
+          "refusal_precision": 0.8333,
+          "n_refusals": 6,
+          "tp": 5,
+          "wrongful": [
+            "Q17"
+          ],
+          "missed": []
+        },
+        {
+          "correctness": 0.7875,
+          "faithfulness": 0.8667,
+          "refusal_recall": 1.0,
+          "refusal_precision": 0.8333,
+          "n_refusals": 6,
+          "tp": 5,
+          "wrongful": [
+            "Q17"
+          ],
+          "missed": []
+        }
+      ]
+    }
+  }
+}

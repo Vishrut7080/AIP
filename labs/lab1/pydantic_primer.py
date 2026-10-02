@@ -26,7 +26,7 @@ saying "no" precisely.
 from __future__ import annotations
 
 import sys
-from typing import Literal, Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 

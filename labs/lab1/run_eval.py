@@ -79,7 +79,7 @@ def main() -> None:
     if args.n:
         cases = cases[: args.n]
 
-    systems = {"b": getattr(mod, "extract_b"), "c": getattr(mod, "extract_c")}
+    systems = {"b": mod.extract_b, "c": mod.extract_c}
     to_run = [args.variant, *args.compare]
 
     reports = []

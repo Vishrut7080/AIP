@@ -24,7 +24,12 @@ from aip.cost import Budget  # noqa: E402
 from aip.evals import judge_agreement, llm_judge  # noqa: E402
 from aip.retrieval import DenseRetriever, format_context  # noqa: E402
 from labs.lab3.search import load_corpus, load_questions  # noqa: E402
-from labs.lab4.rag import REFUSAL, answer_question, answer_with_gold_context  # noqa: E402
+from labs.lab4.rag import (  # noqa: E402
+    REFUSAL,
+    STRICTNESS,
+    answer_question,
+    answer_with_gold_context,
+)
 
 GOLDEN = ROOT / "data/eval/rag_golden.jsonl"
 LABEL_SHEET = ROOT / "labs/lab4/calibration_labels.jsonl"
@@ -305,8 +310,11 @@ if __name__ == "__main__":
     ap.add_argument("--calibrate", action="store_true")
     ap.add_argument("--kappa", action="store_true")
     ap.add_argument("--save", default="")
+    # Derived from STRICTNESS rather than hardcoded: `lenient_complete` (the
+    # Lab 5 v2 prompt) lives there, and a stale choices list silently hides a
+    # configuration you meant to measure.
     ap.add_argument("--strictness", default="lenient",
-                    choices=["default", "lenient", "strict"])
+                    choices=sorted(STRICTNESS))
     ap.add_argument("--single", default="")
     ap.add_argument("--k", type=int, default=RETRIEVE_K)
     ap.add_argument("--final-k", type=int, default=FINAL_K)

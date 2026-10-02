@@ -1,12 +1,48 @@
 .venv/
 __pycache__
-.aip_cache/
 .aip_traces/
 .pytest_cache/
+
+# Lab 7 DELIBERATE EXCEPTIONS to the defaults above.
+#
+# .aip_cache/ and .github/ are ordinarily ignored, but the CI regression gate
+# (labs/lab7/gate.py) runs with AIP_OFFLINE=1 and replays the committed response
+# cache. Without these files tracked, CI cannot run at all: every request is a
+# CacheMiss. README.md (Part D) says "Commit the cache" for exactly this reason.
+#
+# The cache holds prompts and model responses for a teaching corpus of public
+# insurance documents. It contains no secrets -- .env stays ignored.
+#
+# ORDER IS LOAD-BEARING HERE. In git the LAST matching pattern wins, so a
+# negation written above the rule it overrides does nothing at all. These
+# negations used to sit at the top of the file, above `.aip_cache/*.sqlite3` at
+# the bottom -- so calls.sqlite3 was ignored anyway and `git ls-files .aip_cache`
+# returned nothing. The gate had no cache to replay on a fresh clone and a green
+# CI build proved nothing. Keep every `!` below the rule it negates.
+!.aip_cache/
+!.github/
+!.github/workflows/
+!.github/workflows/eval.yml
 
 Test_by_self
 .env
 corpus_scaled
 ans
 zip/*
-.github/*
+
+# The bulk of the cache, and the one file that must be committed.
+#
+# Only calls.sqlite3 is tracked, and only after scripts/prune_cache.py has cut it
+# from 164 MB to ~1.3 MB by keeping the keys offline replay actually reads (the
+# 45 golden answers, the Lab 4 judge calls, and the 45 query vectors). The raw
+# store stays ignored: .aip_cache/chroma/ duplicates data/index/ at 100x the
+# size, and any other sqlite written here is experiment scratch.
+.aip_cache/chroma/*
+.aip_cache/*.sqlite3
+
+!.aip_cache/calls.sqlite3
+
+# Machine-specific wall clock from the gate. Deliberately untracked: replaying
+# the golden set measures this machine's Python, not the system, and it moves
+# every run. reports/gate_metrics.json keeps the reproducible metrics only.
+reports/gate_timing.local.json

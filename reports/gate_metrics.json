@@ -1,0 +1,28 @@
+{
+  "correctness": 0.775,
+  "faithfulness": 0.9111,
+  "citation_validity": 1.0,
+  "refusal_recall": 1.0,
+  "refusal_precision": 0.8333,
+  "hit_rate_at_5": 1.0,
+  "cost_per_query_usd": 0.0,
+  "p95_latency_ms": 10.0,
+  "_n_questions": 45,
+  "_n_answerable": 40,
+  "_n_refusals": 6,
+  "_n_rightful_refusals": 5,
+  "_wrongful_refusals": [
+    "Q23"
+  ],
+  "_n_judged_correctness": 40,
+  "_n_cache_misses": 0,
+  "_cache_miss_ids": [],
+  "_cache_miss_note": "A cache miss under AIP_OFFLINE=1 means the config under test is not the one the cache was recorded against. Treated as a zero-quality answer, not an exception.",
+  "_config": {
+    "strictness": "lenient_complete",
+    "final_k": 8,
+    "tier": "SMALL",
+    "retrieve_k": 16,
+    "hit_k": 5
+  }
+}
