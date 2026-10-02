@@ -1,7 +1,5 @@
 # Lab 6 — Tool Use, Guardrails, and Red-Teaming
 
-**Name:** ______  **Partner:** ______  **Date:** ______
-
 > Model: `gemini-3.7-flash` (MAIN tier). Every number below comes from
 > `reports/lab6_redteam.json`. Block rate and false-positive rate are always
 > reported together, because one without the other is not a measurement.

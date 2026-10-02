@@ -1,7 +1,5 @@
 # Lab 5 — RAG v2: Diagnose, Fix, Prove
 
-**Name:** ______  **Partner:** ______  **Date:** ______
-
 > **This file is written incrementally on purpose.** Part B's prediction is
 > recorded *before* the fix is implemented, so it cannot be retrofitted to
 > whatever the number turns out to be. Later sections are appended as they are

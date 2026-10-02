@@ -1,6 +1,5 @@
 # Aurora Policy Assistant — Evaluation Report
 
-**Name:** ______  **Partner:** ______  **Date:** ______
 **Model:** `gemini-3.5-flash-lite` (generation), `gemini-embedding-001` (retrieval)
 
 Every number here is reproducible from committed artefacts:
@@ -40,7 +39,7 @@ behind an allowlist, argument validation, and human confirmation.
 | hit rate @ 5 (retrieval only) | **1.000** | ≥ 0.85 | pass |
 | cost per query | **$0.00047** | ≤ $0.01 | pass |
 | p95 latency (uncached) | **3651 ms** | ≤ 6000 ms | pass |
-| p95 latency (cached) | **3 ms** | ≤ 800 ms | pass |
+| p95 latency (exact cache) | **3 ms** | ≤ 800 ms | pass |
 | TTFT (streaming) | **fails, 1500 ms target** | ≤ 1500 ms | **FAIL** |
 
 Citation validity of 1.000 is the load-bearing number: it means the system never
@@ -48,10 +47,12 @@ returned a confident answer with a citation pointing at nothing. That invariant
 is enforced in code, not requested in a prompt.
 
 **The refusal figures are one run, not a stable measurement.** Refusal precision
-is 0.833 (5/6 — Q23 is the single wrongful refusal) and recall is 1.000, but
-both rest on 5 unanswerable questions, and 3 independent online repeats of the
-identical shipped config put precision in [0.833, 0.833] and recall in
-[0.800, 1.000]. Treat any single-case difference here as noise.
+is 0.833 (5/6 — in the gate's run, **Q23** is the single wrongful refusal) and
+recall is 1.000, but both rest on 5 unanswerable questions, and 3 independent
+online repeats of the identical shipped config put precision in [0.833, 0.833]
+and recall in [0.800, 1.000]. Treat any single-case difference here as noise.
+The three questions this report names as deterministic failures — Q23 and Q17
+among them — come from different experiments, and §3 and §7 say which.
 
 **These numbers are also not what Labs 4 and 5 measured.** Those labs ran
 `gemini-3.7-flash` (tier `MAIN`); the service ships `gemini-3.5-flash-lite`
@@ -102,13 +103,46 @@ which is what the service runs.** Re-running the same 2×2 on the shipping model
 
 So the rule *is* shipped, and on the shipping model it trades 0.022 of
 faithfulness for 0.029 correctness and 0.135 refusal precision. The single
-remaining cost is one deterministic wrongful refusal (Q17) that appears in
-every run at both tiers.
+remaining cost is one deterministic wrongful refusal — **Q17** — which appears
+in all six online runs of both cells at the shipping tier, so it is a cost of
+rule 7 rather than run-to-run variance.
 
 **The general lesson is the one worth keeping:** a fix rejected on the wrong
 model is not a rejected fix. Lab 5's experiment was internally valid and its
 conclusion was still wrong, because "MAIN" and "SMALL" are different models and
 only one of them was ever going to be deployed.
+
+**The semantic cache is unsafe at every threshold tested, so it ships switched
+off.** B1 asked for a similarity threshold that makes answering B from A's
+cached answer safe. There isn't one. `reports/lab7_semantic_cache.json` scores
+30 question pairs by similarity band, asking of each pair whether the answer
+cached for A would *also* have been judged correct for B:
+
+| similarity band | pairs | correct for B |
+|---|---|---|
+| 0.70 – 0.80 | 24 | **0** |
+| 0.80 – 0.86 | 3 | **0** |
+| 0.86 – 0.90 | 2 | **0** |
+| 0.90 – 0.95 | 1 | **0** |
+| **total** | **30** | **0** |
+
+The failure is structural rather than a tuning problem. A semantic hit on B
+returns A's answer verbatim, so it is correct only when A's answer happens to
+answer B as well — and on this corpus it never did. A concrete pair in the
+0.80–0.86 band: Q28 ("I want cashless at a hospital that turns out to be an
+excluded provider. What are my options?") and Q42 ("The hospital said they
+won't do cashless. Am I finished?"). Both are cashless-network questions, so
+0.84 similarity is defensible by the embedding — but the difference between
+"here is what you can still do" and "it is finished" is the entire answer, on
+the topic where a customer is already stuck.
+
+The outcome is bimodal. At the handout's suggested 0.95 the cache never fires at
+all, because 24 of the 30 pairs sit below 0.80; at any threshold where it *does*
+fire, it returned a wrong answer in every measured case. So
+`SEMANTIC_CACHE_ON = False` ships, and the threshold remains recorded at 0.95
+for anyone who wants to re-measure it. Thirty pairs is a small sample and
+establishes nothing about the rate; but the decision to leave a mechanism *off*
+does not need a precise rate. It needs one counterexample, and there were 30.
 
 ---
 
@@ -141,8 +175,12 @@ generate               1515 ms     3169 ms
 validate / repair         ~0 ms       ~0 ms
 ──────────────────────────────────────────
 total, uncached        2072 ms     3651 ms
-total, cached             3 ms        3 ms
+total, exact cache         3 ms        3 ms
 ```
+
+The cached row is the **exact-key** layer only. The semantic layer contributes
+nothing to it, because it ships disabled (§3) — there is no measurement of
+semantic-cache hit latency here, because there is no such hit to measure.
 
 **Generation is the stage to optimise first, and it is 98% of the latency.**
 Retrieval is 3 ms. No amount of reranking, re-chunking or hybrid retrieval would
@@ -216,11 +254,14 @@ measured on the deployed model. Splitting a multi-hop question into
 sub-questions and retrieving per hop is a structural change with a mechanism
 behind it, independent of which model is deployed.
 
-**4. Fix Q23 and Q17, the two questions the system gets wrong consistently.**
-Expected value: medium, cost low. Both are deterministic, not variance: Q23 is
-refused when it should be answered and Q17 is refused in every run. They are
-worth reading by hand before anything else, because two known-bad answers are a
-better use of an afternoon than any of the above.
+**4. Fix Q23 and Q17 — the two refusals that are wrong for a structural reason.**
+Expected value: medium, cost low. Neither is variance: Q23 is refused when it
+should be answered (the single wrongful refusal in the gate run), and Q17 is
+refused in all six online repeats because rule 7 causes it. They come from
+different experiments, so this is two independent bugs rather than one
+question seen twice. Both are worth reading by hand before anything above,
+because two known-bad answers are a better use of an afternoon than a
+structural change.
 
 **Not doing:** relaxing the refusal threshold. It was relaxed once and, on the
 shipping model, that relaxation *raised* refusal precision (0.698 → 0.833) and
@@ -247,3 +288,20 @@ wall-clock around a cache hit. Those are honest measurements of *this machine
 replaying a cache* and **not** of the deployed service. The deployed cost and
 latency in sections 4 and 5 come from online runs and are the ones to quote. The
 gate's job is to catch regressions between commits, which replay is good at.
+
+**Correctness is replayed too, and that one is subtler.** A replayed judgement
+is a real judgement of a real answer — it is not fabricated — but it is the
+judgement from *one recorded run*, so the gate reports 0.775 correctness with a
+±0.000 that it does not deserve. The live figure for the same configuration,
+3 online repeats, is **0.783 ± 0.007** (§3). Where the two disagree, believe
+the online number; where the gate is silent, believe it, because replay detects
+regressions between commits that live sampling would only catch at the cost of
+running the provider on every push.
+
+**TTFT is reported as a miss and is deliberately not in the gate.** It is the one
+graded target with no threshold, and the reason is mechanical rather than
+convenient: a replayed stream arrives as a single delta, so time-to-first-token
+under `AIP_OFFLINE=1` measures the replay, not the service. Gating it would
+produce a green tick on a number that means nothing. It stays an un-gated,
+openly-missed target in section 2, measured online, and it is first on the fix
+list in section 7 for that reason.
