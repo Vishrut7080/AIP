@@ -23,3 +23,6 @@ Test_by_self
 corpus_scaled
 ans
 zip/*
+
+.aip_cache/*.sqlite3
+.aip_cache/chroma/*
