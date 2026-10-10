@@ -191,6 +191,7 @@ def kind_table(metrics: dict, col: str = "hit_rate@5") -> str:
 # sweeps (yours)
 # ---------------------------------------------------------------------------
 def sweep_baseline() -> None:
+    '''Sets up the starting score for a search system (a RAG retriever) before you try to improve it.'''
     corpus, questions = load_corpus(), load_questions()
     chunks = build_chunks(corpus, "sliding", 800, overlap=150)
     print(f"corpus: {len(corpus)} docs -> {len(chunks)} chunks "

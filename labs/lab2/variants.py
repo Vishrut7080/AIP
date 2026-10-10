@@ -39,6 +39,8 @@ from labs.lab1.extract import (  # noqa: E402
 #            - a satisfied-but-urgent ticket (the sentiment/urgency trap)
 #            - a ticket whose policy number is only in a quoted reply
 #            - one you got wrong in Lab 1
+
+# Example of Edge Cases
 FEW_SHOT_IDS: list[str] = [
     "T0054",  # teaches: mis-sold policy -> complaint (not claims/billing); angry refund demand is urgency 4, NOT 5; no policy number -> null. You got urgency+escalate wrong on this in Lab 1.
     "T0097",  # teaches: the billing/complaint boundary -- ombudsman threat is anger, not a category change; double debit stays billing; urgency 4, escalate true.
