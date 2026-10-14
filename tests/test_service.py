@@ -321,7 +321,7 @@ def test_stream_emits_meta_deltas_and_a_final_done(client, service, monkeypatch)
     assert done["total_ms"] >= done["ttft_ms"]
 
 
-def test_offline_stream_needs_its_own_warm_up(client, service):
+def test_offline_stream_needs_its_own_warm_up(client, service, monkeypatch):
     """Pins a real limitation rather than hiding it behind a stub.
 
     `_run_rag_tokens` builds its own prompt (service.py, delimit_untrusted
@@ -337,6 +337,9 @@ def test_offline_stream_needs_its_own_warm_up(client, service):
     a replayed stream arrives as a single delta, so TTFT equals total and the
     graded TTFT number has to come from an online run.
     """
+    # Ignore any developer scratch-cache entry from a previous local stream;
+    # this test specifically verifies the committed offline replay limitation.
+    monkeypatch.setattr(service.cache, "get", lambda key: None)
     events = _events(client.post("/ask/stream",
                                  json={"question": GOLDEN}).text)
     assert events[-1][0] == "error"
@@ -357,3 +360,56 @@ def test_stream_reports_upstream_failure_as_an_error_event(client, service,
                                  json={"question": GOLDEN}).text)
     assert events[-1][0] == "error"
     assert events[-1][1]["status"] == 503
+
+
+def test_stream_generation_records_provider_token_cost(service, monkeypatch):
+    """Streaming calls must contribute real token usage to /metrics and traces."""
+    from types import SimpleNamespace
+
+    import litellm
+
+    from aip import cost, tracing
+
+    output_chunk = SimpleNamespace(
+        choices=[SimpleNamespace(delta=SimpleNamespace(content="Grounded answer."))],
+        usage=None,
+    )
+    usage_chunk = SimpleNamespace(
+        choices=[],
+        usage=SimpleNamespace(prompt_tokens=120, completion_tokens=10),
+    )
+    monkeypatch.setattr(service.settings, "offline", False)
+    monkeypatch.setattr(service.cache, "get", lambda key: None)
+    monkeypatch.setattr(service.cache, "put", lambda *args, **kwargs: None)
+    monkeypatch.setattr(litellm, "completion",
+                        lambda **kwargs: iter([output_chunk, usage_chunk]))
+    records = []
+    monkeypatch.setattr(tracing, "_write", records.append)
+
+    pieces = list(service._stream_generate("test question", []))
+
+    assert "".join(pieces) == "Grounded answer."
+    span = next(r for r in records if r["name"] == "rag.generate.stream")
+    expected_cost = cost.price_of(service.resolve_model(service.GENERATION_TIER), 120, 10)
+    assert span["prompt_tokens"] == 120
+    assert span["completion_tokens"] == 10
+    assert span["usage_source"] == "provider"
+    assert span["cost_usd"] == pytest.approx(expected_cost)
+    assert span["priced"] is True
+
+
+def test_stream_token_counter_fallback_estimates_cost(service):
+    """Providers without stream usage should still produce a non-zero estimate."""
+    from aip.cost import price_of
+
+    model = service.resolve_model(service.GENERATION_TIER)
+    prompt_tokens, completion_tokens, source = service._stream_token_counts(
+        model,
+        [{"role": "user", "content": "What is the claim deadline?"}],
+        "Submit within 30 days.",
+    )
+
+    assert source == "estimated"
+    assert prompt_tokens > 0
+    assert completion_tokens > 0
+    assert price_of(model, prompt_tokens, completion_tokens) > 0

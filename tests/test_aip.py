@@ -249,6 +249,36 @@ def test_embed_cache_key_separates_query_from_passage():
             == cache.make_key("embed", {"model": gem, "text": "x", "input_type": None}))
 
 
+def test_embedding_api_cost_is_written_to_trace(monkeypatch):
+    """The dashboard needs embedding spend as well as generation spend."""
+    from importlib import import_module
+    from types import SimpleNamespace
+
+    import litellm
+
+    embed_module = import_module("aip.embed")
+
+    recorded = []
+    events = []
+    monkeypatch.setattr(litellm, "embedding", lambda **kwargs: SimpleNamespace(
+        usage=SimpleNamespace(prompt_tokens=1000),
+        data=[{"embedding": [0.1, 0.2]}],
+    ))
+    monkeypatch.setattr(embed_module.cost, "record", recorded.append)
+    monkeypatch.setattr(embed_module.tracing, "event",
+                        lambda name, **attrs: events.append((name, attrs)))
+
+    vectors = embed_module._embed_uncached(
+        ["sample query"], "gemini/gemini-embedding-001", input_type="query")
+
+    expected_cost = price_of("gemini/gemini-embedding-001", 1000, 0)
+    assert vectors == [[0.1, 0.2]]
+    assert recorded[0].cost_usd == pytest.approx(expected_cost)
+    assert events[0][0] == "embed.call"
+    assert events[0][1]["cost_usd"] == pytest.approx(expected_cost)
+    assert events[0][1]["input_type"] == "query"
+
+
 def test_unpriced_models_are_not_reported_as_free():
     """$0.00 must mean 'free', never 'we do not know'."""
     from aip.cost import Budget, Usage, is_priced

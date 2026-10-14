@@ -277,6 +277,45 @@ def _cost_delta(before: float) -> float:
     return round(global_budget().spent_usd - before, 6)
 
 
+def _usage_token_counts(usage) -> tuple[int, int] | None:
+    """Read prompt/completion token counts from a LiteLLM stream chunk."""
+    if usage is None:
+        return None
+    if isinstance(usage, dict):
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+    else:
+        prompt_tokens = getattr(usage, "prompt_tokens", None)
+        completion_tokens = getattr(usage, "completion_tokens", None)
+    if prompt_tokens is None or completion_tokens is None:
+        return None
+    try:
+        return int(prompt_tokens), int(completion_tokens)
+    except (TypeError, ValueError):
+        return None
+
+
+def _stream_token_counts(model: str, messages: list[dict], text: str,
+                         reported_usage=None) -> tuple[int, int, str]:
+    """Use provider usage when available; otherwise use LiteLLM's tokenizer.
+
+    The fallback is an estimate, but still gives the dashboard a useful cost
+    rather than silently recording a paid stream as $0. If tokenization is
+    unsupported, the call is marked unpriced in the ledger and trace.
+    """
+    reported = _usage_token_counts(reported_usage)
+    if reported is not None:
+        return reported[0], reported[1], "provider"
+    try:
+        from litellm import token_counter
+
+        prompt_tokens = token_counter(model=model, messages=messages)
+        completion_tokens = token_counter(model=model, text=text)
+        return int(prompt_tokens), int(completion_tokens), "estimated"
+    except Exception:  # noqa: BLE001 - token accounting must not break answers
+        return 0, 0, "unavailable"
+
+
 def _stream_generate(question: str, hits):
     """Generate with real token streaming. A GENERATOR yielding text pieces.
 
@@ -305,6 +344,18 @@ def _stream_generate(question: str, hits):
     key = _cache.make_key("chat", request)
     hit = _cache.get(key)
     if hit is not None:
+        usage = hit.get("usage", {})
+        _cost.record(_cost.Usage(
+            model=model,
+            prompt_tokens=int(usage.get("prompt_tokens", 0) or 0),
+            completion_tokens=int(usage.get("completion_tokens", 0) or 0),
+            cost_usd=0.0,
+            latency_ms=0.0,
+            cached=True,
+            calls=1,
+            priced=True,
+        ))
+        tracing.event("llm.call", model=model, cached=True, cost_usd=0.0)
         yield hit["text"]
         return
 
@@ -317,28 +368,48 @@ def _stream_generate(question: str, hits):
     with tracing.trace("rag.generate.stream", tier=GENERATION_TIER,
                        n_sources=len(hits)) as span:
         t0 = time.perf_counter()
+        stream_options = {"include_usage": True} if model.startswith("openai/") else None
         stream = completion(model=model, messages=request["messages"],
                             temperature=0.0, max_tokens=700, stream=True,
-                            timeout=settings.timeout_s)
+                            timeout=settings.timeout_s,
+                            stream_options=stream_options)
         parts = []
+        reported_usage = None
         for chunk in stream:
-            piece = getattr(chunk.choices[0].delta, "content", None)
+            choices = getattr(chunk, "choices", None) or []
+            piece = (getattr(choices[0].delta, "content", None)
+                     if choices else None)
             if piece:
                 parts.append(piece)
                 yield piece
+            chunk_usage = getattr(chunk, "usage", None)
+            if _usage_token_counts(chunk_usage) is not None:
+                reported_usage = chunk_usage
         text = "".join(parts).strip()
+        prompt_tokens, completion_tokens, usage_source = _stream_token_counts(
+            model, request["messages"], text, reported_usage)
+        has_usage = usage_source != "unavailable"
+        priced = has_usage and _cost.is_priced(model)
+        usd = (_cost.price_of(model, prompt_tokens, completion_tokens)
+               if has_usage else 0.0)
         span["n_chars"] = len(text)
-        _cost.record(_cost.Usage(model=model, prompt_tokens=0,
-                                 completion_tokens=0, cost_usd=0.0,
+        span.update(prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    cost_usd=round(usd, 6), priced=priced,
+                    usage_source=usage_source)
+        _cost.record(_cost.Usage(model=model, prompt_tokens=prompt_tokens,
+                                 completion_tokens=completion_tokens, cost_usd=usd,
                                  latency_ms=(time.perf_counter() - t0) * 1000,
-                                 cached=False, calls=1, priced=False))
+                                 cached=False, calls=1, priced=priced))
         _cache.put(key, "chat", request, {"text": text, "tool_calls": [],
                                           "finish_reason": None,
-                                          "usage": {"prompt_tokens": 0,
-                                                    "completion_tokens": 0,
-                                                    "cost_usd": 0.0,
+                                          "usage": {"prompt_tokens": prompt_tokens,
+                                                    "completion_tokens": completion_tokens,
+                                                    "cost_usd": usd,
                                                     "latency_ms": 0.0,
-                                                    "cached": False}})
+                                                    "cached": False,
+                                                    "priced": priced,
+                                                    "usage_source": usage_source}})
 
 
 def _run_rag_tokens(question: str, top_k: int):

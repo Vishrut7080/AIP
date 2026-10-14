@@ -53,9 +53,11 @@ curl -s localhost:8000/ask -H 'content-type: application/json' \
 **Optional UI** (needs the service running; live answers need an API key):
 
 ```bash
-streamlit run labs/lab7/ui.py         # chat with expandable citations
-streamlit run labs/lab7/dashboard.py  # latency, cost, refusal alert
+streamlit run labs/lab7/ui.py                                              # chat with expandable citations
+streamlit run labs/lab7/dashboard.py --server.port 8502                    # latency, cost, refusal alert
 ```
+
+Each page links to the other, so `--server.port 8502` is what keeps them apart.
 
 **Run the regression gate** — the same check CI runs on every push:
 

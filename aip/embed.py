@@ -58,10 +58,15 @@ def _embed_uncached(texts: list[str], model: str,
         kwargs["input_type"] = input_type
     resp = embedding(**kwargs)
     pt = int(getattr(resp.usage, "prompt_tokens", 0) or 0)
+    usd = cost.price_of(model, pt, 0)
+    priced = cost.is_priced(model)
     cost.record(
-        cost.Usage(model, pt, 0, cost.price_of(model, pt, 0), 0.0, cached=False,
-                   calls=1, priced=cost.is_priced(model))
+        cost.Usage(model, pt, 0, usd, 0.0, cached=False,
+                   calls=1, priced=priced)
     )
+    tracing.event("embed.call", model=model, prompt_tokens=pt,
+                  completion_tokens=0, cost_usd=round(usd, 6),
+                  priced=priced, cached=False, input_type=input_type)
     return [d["embedding"] for d in resp.data]
 
 

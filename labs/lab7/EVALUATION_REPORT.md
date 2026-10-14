@@ -272,12 +272,37 @@ gate, and the one remaining cost is a single question. There is nothing to buy.
 
 ## Appendix — how to reproduce
 
+Start the backend in one terminal. Offline mode needs no API key and serves the
+committed golden-question replay set:
+
+```powershell
+$env:AIP_OFFLINE = "1"
+python -m uvicorn labs.lab7.service:app --host 127.0.0.1 --port 8000
+```
+
+On macOS/Linux, use `AIP_OFFLINE=1 python -m uvicorn labs.lab7.service:app
+--host 127.0.0.1 --port 8000` instead. Then start each Streamlit page in its own
+terminal:
+
+```bash
+python -m streamlit run labs/lab7/ui.py --server.port 8501
+python -m streamlit run labs/lab7/dashboard.py --server.port 8502
+```
+
+The chat UI links to the operations dashboard at `http://localhost:8502`, and
+the dashboard links back to the chat UI at `http://localhost:8501`. To try an
+offline answer, turn off **Stream the answer** in the chat UI sidebar and use one
+of the exact sample questions; clicking a sample fills the query field, and
+**Ask** submits it. (The stream endpoint uses a different cache key and is not
+included in the committed offline replay set.)
+
+For report reproduction and checks:
+
 ```bash
 python scripts/warm_cache.py --verify     # offline replay works?
 AIP_OFFLINE=1 python labs/lab7/gate.py     # all 8 metrics, no API key
 python labs/lab5/diagnose.py --pareto      # failure classification
 python labs/lab7/semantic_cache.py         # B1 threshold measurement
-uvicorn labs.lab7.service:app --port 8000  # the service
 curl localhost:8000/health                 # index size, model, cache
 curl localhost:8000/metrics                # cost, latency, error rate
 ```

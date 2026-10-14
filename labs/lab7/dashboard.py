@@ -24,6 +24,9 @@ from aip.config import settings  # noqa: E402
 st.set_page_config(page_title="Aurora Assistant — Ops", layout="wide")
 st.title("Aurora Policy Assistant — operations")
 
+st.sidebar.caption("start the chat UI on the default port")
+st.sidebar.link_button("← Ask a question", "http://localhost:8501")
+
 runs = sorted(settings.trace_dir.glob("*.jsonl"), reverse=True)
 if not runs:
     st.info(f"No traces yet in {settings.trace_dir}. Run some queries first.")
@@ -41,12 +44,27 @@ df["ts"] = pd.to_datetime(df["ts"], unit="s")
 
 c = st.columns(5)
 c[0].metric("spans", len(df))
-c[1].metric("total cost", f"${df.get('cost_usd', pd.Series([0])).fillna(0).sum():.4f}")
+total_cost = df.get("cost_usd", pd.Series([0])).fillna(0).sum()
+c[1].metric("total cost", f"${total_cost:.6f}")
 llm = df[df["name"] == "llm.call"]
 c[2].metric("model calls", len(llm))
 if len(llm):
     c[3].metric("cache hit rate", f"{llm.get('cached', pd.Series([False])).fillna(False).mean():.0%}")
 c[4].metric("errors", int((df.get("status") == "error").sum()))
+
+cost_calls = df[df["name"].isin(["llm.call", "rag.generate.stream", "embed.call"])]
+if len(cost_calls):
+    missing_cost = int(cost_calls.get("cost_usd", pd.Series(index=cost_calls.index,
+                                                               dtype=float)).isna().sum())
+    if missing_cost:
+        st.warning(
+            f"{missing_cost} model call(s) in the selected traces have no cost "
+            "record. Restart the backend after updating it and select a newer run."
+        )
+    priced = cost_calls.get("priced", pd.Series(True, index=cost_calls.index))
+    unpriced = int((~priced.fillna(False).astype(bool)).sum())
+    if unpriced:
+        st.caption(f"Cost is unavailable for {unpriced} unpriced model call(s).")
 
 st.subheader("Latency by stage")
 # C3: p50/p95 per span name. This is the table that answers "which stage should
@@ -77,7 +95,16 @@ if inner:
 st.subheader("Cost over time")
 if "cost_usd" in df:
     cum = df.sort_values("ts").assign(cum=lambda d: d["cost_usd"].fillna(0).cumsum())
-    st.line_chart(cum.set_index("ts")["cum"])
+    import altair as alt
+
+    chart = alt.Chart(cum).mark_line(point=True).encode(
+        x=alt.X("ts:T", title="Time"),
+        y=alt.Y("cum:Q", title="Cumulative cost (USD)",
+                axis=alt.Axis(format="$,.6f")),
+        tooltip=[alt.Tooltip("ts:T", title="Time"),
+                 alt.Tooltip("cum:Q", title="Cumulative cost", format="$,.6f")],
+    )
+    st.altair_chart(chart, use_container_width=True)
 
 st.subheader("Errors")
 errs = df[df.get("status") == "error"]
@@ -111,10 +138,12 @@ if "name" in df:
     refusals = df[df["name"] == "service.refused"]
     if len(asks):
         recent = asks.tail(max(10, len(asks) // 4))
-        recent_r = refusals.tail(max(10, len(refusals) // 4)) if len(refusals) else refusals
         # Count refusals whose ts falls in the recent window, so the ratio is
-        # like-for-like rather than a cumulative-total artefact.
-        cutoff = recent["ts"].min().timestamp()
+        # like-for-like rather than a cumulative-total artefact. `ts` is already
+        # datetime64 from the pd.to_datetime at the top, so the cutoff has to
+        # stay a Timestamp -- .timestamp() hands back a float epoch, which
+        # pandas will not compare against a datetime64 column.
+        cutoff = recent["ts"].min()
         recent_r = refusals[refusals["ts"] >= cutoff]
         observed = len(recent_r) / len(recent) if len(recent) else 0.0
         if observed > ALERT_REFUSAL_RATE:
